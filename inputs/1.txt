@@ -1,0 +1,7 @@
+hello := 4
+other := 67
+next := 45.8
+more := .45
+invalid syntax
+%%%
+wat?

@@ -1,0 +1,13 @@
+.project
+
+out/*
+cpq
+
+include/location.hh
+include/position.hh
+include/parser.hh
+include/stack.hh
+
+src/parser.cpp
+src/scanner.cpp
+
