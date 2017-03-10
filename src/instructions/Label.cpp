@@ -1,5 +1,4 @@
 #include "instructions/Label.h"
-#include "exceptions/Label.h"
 
 namespace cpq { namespace instructions {
 

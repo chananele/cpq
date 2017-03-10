@@ -127,12 +127,12 @@ namespace cpq {
 
 void driver::scan_begin()
 {
-	yy_flex_debug = trace_scanning;
-	if (file.empty() || file == "-") {
+	yy_flex_debug = false;
+	if (m_file == "-") {
     	yyin = stdin;
 	}
-	else if (!(yyin = fopen(file.c_str(), "r"))) {
-		std::cerr << "cannot open " << file << ": " << strerror(errno) << std::endl;
+	else if (!(yyin = fopen(m_file.c_str(), "r"))) {
+		std::cerr << "cannot open " << m_file << ": " << strerror(errno) << std::endl;
 		exit(EXIT_FAILURE);
     }
 }

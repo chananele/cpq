@@ -4,38 +4,43 @@
 # include <unordered_map>
 
 #include "symbol.h"
+
+#include "instructions/Instruction.h"
 #include "parser.hh"
 
-# define YY_DECL cpq::parser::symbol_type yylex(cpq::driver& driver)
+#define YY_DECL cpq::parser::symbol_type yylex(cpq::driver& driver)
 
 namespace cpq {
 
 class driver
 {
 public:
-	driver ();
-	virtual ~driver ();
+	friend class parser;
 
-	std::unordered_map<std::string, std::shared_ptr<Symbol>> variables;
+	driver() {}
+	virtual ~driver() {}
 
 	// Handling the scanner.
-	void scan_begin ();
-	void scan_end ();
-	bool trace_scanning;
+	void scan_begin();
+	void scan_end();
 
-	// Run the parser on file F.
-	// Return 0 on success.
-	int parse (const std::string& f);
-
-	// The name of the file being parsed.
-	// Used later to pass the file name to the location tracker.
-	std::string file;
-
-	// Whether parser traces should be generated.
-	bool trace_parsing;
+	/**
+	 * @brief Runs the parser on the given file, Printing the compiled
+	 * 		  code to the standard output.
+	 *
+	 * @param file - The name of the file to parse.
+	 *
+	 * @return 0 on success.
+	 */
+	int parse(const std::string& file);
 
 	// Error handling.
-	void error (const cpq::location& l, const std::string& m);
+	void error(const cpq::location& l, const std::string& m);
+
+private:
+	std::string 												m_file;
+	std::unordered_map<std::string, std::shared_ptr<Symbol>>	m_variables;
+	std::vector<std::unique_ptr<instructions::Instruction>>		m_instructions;
 };
 
 }

@@ -40,15 +40,19 @@ add_custom_command(
 
 include_directories(${CMAKE_BINARY_DIR}/inc)
 include_directories(${CMAKE_SOURCE_DIR}/inc)
+
+set(SOURCES ${FLEX_SOURCE} ${BISON_SOURCE})
 add_subdirectory("src")
 
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 
 if(MSVC)
+    # Flex and Bison do not generate warning free code.
+    # Disabling warnings is a bit overkill. I will have to fix this in future.
     add_definitions(/W0)
 endif()
 
-add_executable(cpq ${FLEX_SOURCE} ${BISON_SOURCE} ${SOURCES})
+add_executable(cpq ${SOURCES})
 
 set_property(TARGET cpq PROPERTY CXX_STANDARD 14)
 set_property(TARGET cpq PROPERTY CXX_STANDARD_REQUIRED ON)

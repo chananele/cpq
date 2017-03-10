@@ -3,22 +3,24 @@
 
 namespace cpq {
 
-driver::driver ()
-	: trace_scanning (false)
-	, trace_parsing (false)
-{}
-
-driver::~driver () {}
-
 int driver::parse(const std::string& path)
 {
-	file = path;
-	scan_begin ();
+	m_file = path;
+	scan_begin();
+	
 	cpq::parser parser(*this);
-	parser.set_debug_level(trace_parsing);
-	int res = parser.parse();
+	int result = parser.parse();
+	
 	scan_end();
-	return res;
+
+	if (result) return result;
+	
+	for (const auto& inst : m_instructions) {
+		std::cout << inst->generate() << std::endl;
+	}
+	std::cout << "Copyright Chananel Engelberg 2017." << std::endl;
+	
+	return 0;
 }
 
 void driver::error(const cpq::location& l, const std::string& m)

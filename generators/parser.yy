@@ -30,7 +30,7 @@
 %initial-action
 {
 	// Initialize the initial location.
-	@$.begin.filename = @$.end.filename = &driver.file;
+	@$.begin.filename = @$.end.filename = &driver.m_file;
 };
 
 %define parse.trace
@@ -140,8 +140,8 @@
 
 PROGRAM : 
 	"instructions" "identifier" DECLARATIONS "start" STATEMENTS "end" {
-	
-		std::vector<std::unique_ptr<instructions::Instruction>> insts;
+		
+		auto& insts = driver.m_instructions;
 		
 		for (const auto& assn : *$3) {
 			assn->generate(insts);
@@ -151,11 +151,6 @@ PROGRAM :
 		}
 		
 		finish(insts);
-		
-		for (const auto& inst : insts) {
-			std::cout << inst->generate() << std::endl;
-		}
-		std::cout << "Copyright Chananel Engelberg 2017." << std::endl;
 	} 
 ;
 
@@ -172,10 +167,10 @@ VARS :
 DECLARATION :
 	IDENTIFIERS ":" TYPE ";" {
 		for (const std::string& id : *$1) {
-			if (driver.variables.find(id) != driver.variables.end()) {
+			if (driver.m_variables.find(id) != driver.m_variables.end()) {
 				throw cpq::parser::syntax_error(@$, "variable redefinition: " + id);
 			}
-			driver.variables[id] = std::make_shared<Symbol>($3);
+			driver.m_variables[id] = std::make_shared<Symbol>($3);
 		}
 	}
 ;
@@ -197,11 +192,11 @@ CONSTS :
 	}
 |	CONSTS "const" TYPE "identifier" ":=" NUMBER ";"	{
 		$$ = $1;
-		if (driver.variables.find($4) != driver.variables.end()) {
+		if (driver.m_variables.find($4) != driver.m_variables.end()) {
 			throw cpq::parser::syntax_error(@$, "variable redefinition: " + $4);
 		}
 		auto symbol = std::make_shared<Symbol>($3);
-		driver.variables[$4] = symbol;
+		driver.m_variables[$4] = symbol;
 		
 		$$->push_back(std::make_unique<Assignment>(@$, symbol, $6));
 		symbol->lock();
@@ -235,7 +230,7 @@ READ_STMT :
 	"read" "(" "identifier" ")" ";" {
 		try
 		{
-			$$ = std::make_shared<Read>(@$, driver.variables[$3]);
+			$$ = std::make_shared<Read>(@$, driver.m_variables[$3]);
 		} catch (const std::out_of_range&) {
 			throw cpq::parser::syntax_error(@$, "reading to undefined variable: " + $3);
 		} 
@@ -246,7 +241,7 @@ ASSIGNMENT_STMT :
 	"identifier" ":=" EXPRESSION ";" { 
 		try
 		{
-			$$ = std::make_shared<Assignment>(@$, driver.variables[$1], $3);
+			$$ = std::make_shared<Assignment>(@$, driver.m_variables[$1], $3);
 		} catch (const std::out_of_range&) {
 			throw cpq::parser::syntax_error(@$, "assigning to undefined variable: " + $1);
 		} 
@@ -256,7 +251,7 @@ CAST_STMT :
 	"identifier" ":=" "ival" "(" EXPRESSION ")" ";" { 
 		try
 		{
-			auto symbol = driver.variables[$1];
+			auto symbol = driver.m_variables[$1];
 			if ($5->type() == symbol_type_e::INT) {
 				$$ = std::make_shared<Assignment>(@$, symbol, $5);
 			} else {
@@ -269,7 +264,7 @@ CAST_STMT :
 |	"identifier" ":=" "rval" "(" EXPRESSION ")" ";" {
 		try
 		{
-			auto symbol = driver.variables[$1];
+			auto symbol = driver.m_variables[$1];
 			$$ = std::make_shared<Assignment>(@$, symbol, $5);
 		} catch (const std::out_of_range&) {
 			throw cpq::parser::syntax_error(@$, "assigning to undefined variable: " + $1);
@@ -323,26 +318,26 @@ CASES :
 	  
 STEP :
 	"identifier" ":=" "identifier" "addition" NUMBER		{
-		if (driver.variables.find($1) == driver.variables.end()) {
+		if (driver.m_variables.find($1) == driver.m_variables.end()) {
 			throw cpq::parser::syntax_error(@1, "assigning to undefined variable: " + $1);
 		}
-		if (driver.variables.find($3) == driver.variables.end()) {
+		if (driver.m_variables.find($3) == driver.m_variables.end()) {
 			throw cpq::parser::syntax_error(@3, "loading undefined variable: " + $3);
 		}
-		$$ = std::make_shared<Assignment>(@$, driver.variables[$1], binary(
-				@$, $4, std::make_shared<Load>(@3, driver.variables[$3]), $5
+		$$ = std::make_shared<Assignment>(@$, driver.m_variables[$1], binary(
+				@$, $4, std::make_shared<Load>(@3, driver.m_variables[$3]), $5
 			)
 		);
 	}
 |	"identifier" ":=" "identifier" "multiplication" NUMBER	{
-		if (driver.variables.find($1) == driver.variables.end()) {
+		if (driver.m_variables.find($1) == driver.m_variables.end()) {
 			throw cpq::parser::syntax_error(@1, "assigning to undefined variable: " + $1);
 		}
-		if (driver.variables.find($3) == driver.variables.end()) {
+		if (driver.m_variables.find($3) == driver.m_variables.end()) {
 			throw cpq::parser::syntax_error(@3, "loading undefined variable: " + $3);
 		}
-		$$ = std::make_shared<Assignment>(@$, driver.variables[$1], binary(
-				@$, $4, std::make_shared<Load>(@3, driver.variables[$3]), $5
+		$$ = std::make_shared<Assignment>(@$, driver.m_variables[$1], binary(
+				@$, $4, std::make_shared<Load>(@3, driver.m_variables[$3]), $5
 			)
 		);
 	} 
@@ -384,7 +379,7 @@ TERM :
 	 
 FACTOR :
 	"(" EXPRESSION ")"			{ $$ = $2; }
-|	"identifier"				{ $$ = std::make_shared<Load>(@$, driver.variables[$1]); }
+|	"identifier"				{ $$ = std::make_shared<Load>(@$, driver.m_variables[$1]); }
 |	NUMBER						{ $$ = $1; }
 ;
 
