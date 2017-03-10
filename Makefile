@@ -4,12 +4,12 @@ INCLUDE 	= ./include
 GENERATOR	= ./generators
 
 CXX		 = g++
-CXXFLAGS = -I $(INCLUDE) -std=c++11
+CXXFLAGS = -I $(INCLUDE) -std=c++14
 
-FILES   = scanner parser driver cpq
-HEADERS = $(patsubst %, $(INCLUDE)/%.hh, parser driver)
-SOURCES = $(patsubst %, $(SRC)/%.cpp, $(FILES))
-OBJECTS = $(patsubst %, $(OUT)/%.o, $(FILES))
+FILES   =  scanner parser driver cpq symbol instruction statement
+HEADERS =  $(patsubst %, $(INCLUDE)/%.hh, parser driver symbol instruction statement)
+SOURCES =  $(patsubst %, $(SRC)/%.cpp, $(FILES))
+OBJECTS =  $(patsubst %, $(OUT)/%.o, $(FILES))
 
 cpq : $(OBJECTS)
 	$(CXX) -o $@ $^ $(CXXFLAGS)

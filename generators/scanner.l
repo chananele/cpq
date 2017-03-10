@@ -1,19 +1,20 @@
 %{
 
-# include <cerrno>
-# include <climits>
-# include <cstdlib>
-# include <string>
+#include <iostream>
+#include <cerrno>
+#include <climits>
+#include <cstdlib>
+#include <string>
 
-# include "driver.hh"
-# include "parser.hh"
+#include "driver.hh"
+#include "parser.hh"
 
 // Work around an incompatibility in flex (at least versions
 // 2.5.31 through 2.5.33): it generates code that does
 // not conform to C89.  See Debian bug 333231
 // <http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=333231>.
-# undef yywrap
-# define yywrap() 1
+#undef yywrap
+#define yywrap() 1
 
 // The location of the current token.
 static cpq::location loc;
@@ -130,7 +131,7 @@ void driver::scan_begin()
     	yyin = stdin;
 	}
 	else if (!(yyin = fopen(file.c_str(), "r"))) {
-		error("cannot open " + file + ": " + strerror(errno));
+		std::cerr << "cannot open " << file << ": " << strerror(errno) << std::endl;
 		exit(EXIT_FAILURE);
     }
 }

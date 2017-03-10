@@ -1,0 +1,11 @@
+instructions invalid
+
+    /* should fail on account of redefining a variable */
+    variables a, b, a : int;
+
+start
+    a := 4
+    b := 3.0
+    print (a)
+end
+

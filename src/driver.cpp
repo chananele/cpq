@@ -26,9 +26,4 @@ void driver::error(const cpq::location& l, const std::string& m)
 	std::cerr << l << ": " << m << std::endl;
 }
 
-void driver::error (const std::string& m)
-{
-	std::cerr << m << std::endl;
-}
-
 }

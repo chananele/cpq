@@ -1,9 +1,9 @@
 #pragma once
 
 # include <string>
-# include <map>
+# include <unordered_map>
 
-#include "numbers.hh"
+#include "symbol.hh"
 #include "parser.hh"
 
 # define YY_DECL cpq::parser::symbol_type yylex(cpq::driver& driver)
@@ -16,7 +16,7 @@ public:
 	driver ();
 	virtual ~driver ();
 
-	std::map<std::string, std::shared_ptr<INumber>> variables;
+	std::unordered_map<std::string, std::shared_ptr<Symbol>> variables;
 
 	// Handling the scanner.
 	void scan_begin ();
@@ -36,7 +36,6 @@ public:
 
 	// Error handling.
 	void error (const cpq::location& l, const std::string& m);
-	void error (const std::string& m);
 };
 
 }

@@ -1,0 +1,11 @@
+instructions third
+
+    /* testing the recognition of expressions */
+    variables a, b, c: int; d: real; e: int; const real f := 1.5;
+
+start
+    a := 4 * 5;
+    b := a * 3.5;
+    c := d + (3 - 6) / 4;
+end
+
