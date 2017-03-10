@@ -50,6 +50,11 @@ list(APPEND SRC src/symbol.cpp)
 list(APPEND SRC src/instruction.cpp)
 
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+
+if(MSVC)
+    add_definitions(/W0)
+endif()
+
 add_executable(cpq ${FLEX_SOURCE} ${BISON_SOURCE} ${SRC})
 
 set_property(TARGET cpq PROPERTY CXX_STANDARD 14)
