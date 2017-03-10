@@ -26,7 +26,7 @@ Assignment::Assignment(
 	}
 	
 	if (symbol->constant()) {
-		throw cpq::parser::syntax_error(m_loc, "attempting to modify constant identifier");
+		throw cpq::parser::syntax_error(m_loc, "attempting to modify constant variable");
 	}
 }
 

@@ -17,11 +17,11 @@ start
         print(a);
     }
 
-    switch (4 * 5) {
-        case 3:  print (111); break;
-        case 6:  print (222); break;
-        case 20: print (333); break;
-        case 6:  print (123); break;
+    switch (4 * 5 + 1.0) {
+        case 3:   print (111); break;
+        case 6:   print (222); break;
+        case 21:  print (333); break;
+        case 6.1: print (123); break;
         default: print (666);
     }
 

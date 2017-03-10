@@ -1,0 +1,10 @@
+instructions loop
+
+    /* testing until statement */
+    variables a, b : int; const int c := 5;
+
+start 
+    a := c;
+    do { print (a); a := a + 1; } until (a > 2 * c);
+end
+

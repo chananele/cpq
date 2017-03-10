@@ -1,6 +1,6 @@
 .project
 
-out/*
+bin/*
 cpq
 
 include/location.hh
