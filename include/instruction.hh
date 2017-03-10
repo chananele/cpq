@@ -1,12 +1,24 @@
 #pragma once
 
 #include <fstream>
+#include <memory>
 
 #include "symbol.hh"
 
 namespace cpq {
 
 namespace instructions {
+
+class Label {
+public:
+	Label() {}
+
+	void set(std::size_t pos) 	{ m_position = pos + 1;	}
+	unsigned get() const 		{ return m_position;	}
+
+private:
+	unsigned m_position;
+};
 
 class Instruction {
 public:
@@ -143,6 +155,72 @@ class Divide : public BinaryOperation<Divide> {
 public:
 	using BinaryOperation<Divide>::BinaryOperation;
 	static const std::string instruction[];
+};
+
+class Inequality : public Instruction {
+public:
+
+	static const std::string instruction[symbol_type_e::LAST_TYPE][comparison_e::LAST_COMPARISON];
+
+	Inequality(
+		comparison_e	comp,
+		symbol_type_e 	type,
+		const std::string& dest,
+		const std::string& left,
+		const std::string& right
+	)
+		: m_comp(comp)
+		, m_type(type)
+		, m_dest(dest)
+		, m_left(left)
+		, m_right(right)
+	{}
+
+	virtual void generate(std::ostream& os) const override {
+		bool change = m_comp & 0b100;
+		auto left 	= change ? m_left : m_right;
+		auto right	= change ? m_right : m_left;
+
+		os << instruction[m_type][m_comp & 0b11] << " ";
+		os << m_dest << " " << left << " " << right << std::endl;
+	}
+
+private:
+	const comparison_e	m_comp;
+	const symbol_type_e m_type;
+	const std::string	m_dest;
+	const std::string	m_left;
+	const std::string	m_right;
+};
+
+class Branch : public Instruction {
+public:
+	Branch(const std::string& var, const std::shared_ptr<Label> label)
+		: m_var(var)
+		, m_label(label)
+	{}
+
+	virtual void generate(std::ostream& os) const override {
+		os << "JMPZ" << " " << m_label->get() << " " << m_var << std::endl;
+	}
+
+private:
+	const std::string m_var;
+	const std::shared_ptr<Label> m_label;
+};
+
+class Jump : public Instruction {
+public:
+	Jump(const std::shared_ptr<Label> label)
+		: m_label(label)
+	{}
+
+	virtual void generate(std::ostream& os) const override {
+		os << "JUMP" << " " << m_label->get() << std::endl;
+	}
+
+private:
+	const std::shared_ptr<Label> m_label;
 };
 
 class Halt : public Instruction {

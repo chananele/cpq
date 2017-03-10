@@ -20,15 +20,6 @@
 	
 	namespace cpq {
 		class driver;
-		
-		enum comparison_e {
-			GT,
-			LT,
-			GTE,
-			LTE,
-			EQ,
-			NEQ
-		};
 	}
 }
 
@@ -123,6 +114,11 @@
 %type <std::shared_ptr<statements::Statement>> CAST_STMT
 %type <std::shared_ptr<statements::Statement>> CONTROL_STMT
 
+%type <std::shared_ptr<statements::Boolean>> BOOLEAN
+%type <std::shared_ptr<statements::Boolean>> BFACTOR
+%type <std::shared_ptr<statements::Boolean>> BEXPR
+%type <std::shared_ptr<statements::Boolean>> BTERM
+
 %token <std::string> IDENTIFIER "identifier"
 
 %token <char> ADDITION "addition"
@@ -140,7 +136,9 @@
 
 PROGRAM : 
 	"instructions" "identifier" DECLARATIONS "start" STATEMENTS "end" {
+	
 		std::vector<std::unique_ptr<instructions::Instruction>> insts;
+		
 		for (const auto& assn : *$3) {
 			assn->generate(insts);
 		}
@@ -148,6 +146,7 @@ PROGRAM :
 			stmt->generate(insts);
 		}
 		finish(insts);
+		
 		for (const auto& inst : insts) {
 			inst->generate(std::cout);
 		}
@@ -217,7 +216,7 @@ STATEMENT :
 	ASSIGNMENT_STMT	{ $$ = $1; }
 |	CAST_STMT		{ $$ = $1; }
 |	BLOCK_STMT		{ $$ = $1; }
-|	CONTROL_STMT	{ $$ = std::make_shared<NullStatement>(@$); }
+|	CONTROL_STMT	{ $$ = $1; }
 |	READ_STMT		{ $$ = $1; }
 |	WRITE_STMT		{ $$ = $1; }
 ;
@@ -273,11 +272,21 @@ CAST_STMT :
 ;
 
 CONTROL_STMT :
-	"if" 	"(" BOOLEAN ")" "then" STATEMENT "else" STATEMENT		{}
-|	"while" "(" BOOLEAN ")"  STATEMENT								{}
-|	"for"	"(" ASSIGNMENT_STMT BOOLEAN ";" STEP ")" STATEMENT		{}
-|	"do" STATEMENT "until" "(" BOOLEAN ")" ";"						{}
-|	SWITCH_STMT														{}
+	"if" 	"(" BOOLEAN ")" "then" STATEMENT "else" STATEMENT		{
+		$$ = std::make_shared<IfStatement>(@$, $3, $6, $8);
+	}
+|	"while" "(" BOOLEAN ")"  STATEMENT								{
+		$$ = std::make_shared<WhileStatement>(@$, $3, $5);
+	}
+|	"for"	"(" ASSIGNMENT_STMT BOOLEAN ";" STEP ")" STATEMENT		{
+		$$ = std::make_shared<NullStatement>(@$);
+	}
+|	"do" STATEMENT "until" "(" BOOLEAN ")" ";"						{
+		$$ = std::make_shared<UntilStatement>(@$, $5, $2);
+	}
+|	SWITCH_STMT														{
+		$$ = std::make_shared<NullStatement>(@$);
+	}
 ;
 
 BLOCK_STMT :
@@ -301,22 +310,22 @@ STEP :
 ;
 
 BOOLEAN :
-	BEXPR	{}
+	BEXPR	{ $$ = $1; }
 ;
 
 BEXPR :
-	BEXPR "or" BTERM	{}
-|	BTERM				{}
+	BEXPR "or" BTERM	{ $$ = std::make_shared<Or>($1, $3); }
+|	BTERM				{ $$ = $1; }
 ;
 
 BTERM :
-	BTERM "and" BFACTOR {}
-|	BFACTOR				{}
+	BTERM "and" BFACTOR { $$ = std::make_shared<And>($1, $3); }
+|	BFACTOR				{ $$ = $1; }
 ;
 
 BFACTOR :
-	"not" "(" BEXPR ")"					{}
-|	EXPRESSION "comparison" EXPRESSION	{}
+	"not" "(" BEXPR ")"					{ $$ = std::make_shared<Negate>($3); 				}
+|	EXPRESSION "comparison" EXPRESSION	{ $$ = std::make_shared<Comparison>($2, $1, $3); 	}
 ;
 
 EXPRESSION :

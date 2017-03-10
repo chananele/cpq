@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <vector>
+#include <string>
 #include <list>
 
 #include "location.hh"
@@ -316,6 +317,246 @@ public:
 		std::vector<std::unique_ptr<instructions::Instruction>>& insts
 		) const override
 	{}
+};
+
+class Boolean {
+public:
+	virtual void generate(
+		std::vector<std::unique_ptr<instructions::Instruction>>& insts,
+		const std::shared_ptr<Symbol> symbol
+		) const = 0;
+};
+
+template <bool res>
+class Connective : public Boolean {
+public:
+	Connective(const std::shared_ptr<Boolean> left, const std::shared_ptr<Boolean> right)
+		: m_left(left)
+		, m_right(right)
+	{}
+
+	virtual void generate(
+		std::vector<std::unique_ptr<instructions::Instruction>>& insts,
+		const std::shared_ptr<Symbol> symbol
+	) const override
+	{
+		auto label(std::make_shared<instructions::Label>());
+		m_left->generate(insts, symbol);
+		auto comp(std::make_shared<Symbol>("", symbol_type_e::INT));
+		insts.push_back(std::make_unique<instructions::Inequality>(
+			comparison_e::NEQ,
+			symbol_type_e::INT,
+			comp->var(),
+			symbol->var(),
+			std::to_string(int(res))
+		));
+		insts.push_back(std::make_unique<instructions::Branch>(comp->var(), label));
+		m_right->generate(insts, symbol);
+		label->set(insts.size());
+	}
+
+private:
+	const std::shared_ptr<Boolean> m_left;
+	const std::shared_ptr<Boolean> m_right;
+};
+
+using Or =  Connective<true>;
+using And = Connective<false>;
+
+class Negate : public Boolean {
+public:
+	Negate(const std::shared_ptr<Boolean> boolean)
+		: m_boolean(boolean)
+	{}
+
+	virtual void generate(
+		std::vector<std::unique_ptr<instructions::Instruction>>& insts,
+		const std::shared_ptr<Symbol> symbol
+	) const override
+	{
+		m_boolean->generate(insts, symbol);
+		insts.push_back(std::make_unique<instructions::Inequality>(
+			comparison_e::NEQ,
+			symbol_type_e::INT,
+			symbol->var(),
+			symbol->var(),
+			"1"
+			));
+	}
+
+private:
+	const std::shared_ptr<Boolean> m_boolean;
+};
+
+class Comparison : public Boolean {
+public:
+	Comparison(
+		const comparison_e comp,
+		const std::shared_ptr<Expression> left,
+		const std::shared_ptr<Expression> right
+	)
+		: m_comp(comp)
+		, m_left(left)
+		, m_right(right)
+	{}
+
+	virtual void generate(
+		std::vector<std::unique_ptr<instructions::Instruction>>& insts,
+		const std::shared_ptr<Symbol> symbol
+	) const override
+	{
+		auto first	(std::make_shared<Symbol>("", m_left->type()));
+		auto second	(std::make_shared<Symbol>("", m_right->type()));
+
+		m_left	->generate(insts, first);
+		m_right	->generate(insts, second);
+
+		if (first->type() == type()) { auto temp = first; first = second; second = temp; }
+
+		auto converted(first);
+		if (first->type() != type()) {
+			converted = std::make_shared<Symbol>("", type());
+			insts.push_back(std::make_unique<instructions::Cast>(
+				converted->type(),
+				converted->var(),
+				first->var()
+				));
+		}
+		insts.push_back(std::make_unique<instructions::Inequality>(
+			m_comp,
+			type(),
+			symbol->var(),
+			converted->var(),
+			second->var()
+			));
+	}
+
+private:
+	symbol_type_e type() const {
+		if (m_left->type() == symbol_type_e::REAL) {
+			return symbol_type_e::REAL;
+		}
+		if (m_right->type() == symbol_type_e::REAL) {
+			return symbol_type_e::REAL;
+		}
+		return symbol_type_e::INT;
+	}
+
+	const comparison_e					m_comp;
+	const std::shared_ptr<Expression> 	m_left;
+	const std::shared_ptr<Expression> 	m_right;
+};
+
+class WhileStatement : public Statement {
+public:
+	WhileStatement(
+		const cpq::location& loc,
+		const std::shared_ptr<Boolean> boolean,
+		const std::shared_ptr<Statement> statement
+		)
+		: Statement(loc)
+		, m_boolean(std::make_shared<Negate>(boolean))
+		, m_statement(statement)
+	{}
+
+	virtual void generate(std::vector<std::unique_ptr<instructions::Instruction>>& insts) const override {
+
+		auto result(std::make_shared<Symbol>("", symbol_type_e::INT));
+
+		auto condition(std::make_shared<instructions::Label>());
+		auto code(std::make_shared<instructions::Label>());
+
+		insts.push_back(std::make_unique<instructions::Jump>(condition));
+		code->set(insts.size());
+
+		m_statement->generate(insts);
+		condition->set(insts.size());
+
+		m_boolean->generate(insts, result);
+		insts.push_back(std::make_unique<instructions::Branch>(
+			result->var(),
+			code
+			));
+	}
+
+private:
+	const std::shared_ptr<Boolean> m_boolean;
+	const std::shared_ptr<Statement> m_statement;
+};
+
+class UntilStatement : public Statement {
+public:
+	UntilStatement(
+		const cpq::location& loc,
+		const std::shared_ptr<Boolean> boolean,
+		const std::shared_ptr<Statement> statement
+		)
+		: Statement(loc)
+		, m_boolean(boolean)
+		, m_statement(statement)
+	{}
+
+	virtual void generate(std::vector<std::unique_ptr<instructions::Instruction>>& insts) const override {
+
+		auto result(std::make_shared<Symbol>("", symbol_type_e::INT));
+
+		auto condition(std::make_shared<instructions::Label>());
+
+		auto code(std::make_shared<instructions::Label>());
+		code->set(insts.size());
+
+		m_statement->generate(insts);
+		condition->set(insts.size());
+
+		m_boolean->generate(insts, result);
+		insts.push_back(std::make_unique<instructions::Branch>(
+			result->var(),
+			code
+			));
+	}
+
+private:
+	const std::shared_ptr<Boolean> m_boolean;
+	const std::shared_ptr<Statement> m_statement;
+};
+
+class IfStatement : public Statement {
+public:
+	IfStatement(
+		const cpq::location& loc,
+		const std::shared_ptr<Boolean> condition,
+		const std::shared_ptr<Statement> positive,
+		const std::shared_ptr<Statement> negative)
+	: Statement(loc)
+	, m_condition(condition)
+	, m_positive(positive)
+	, m_negative(negative)
+	{}
+
+	virtual void generate(std::vector<std::unique_ptr<instructions::Instruction>>& insts) const override {
+		auto symbol(std::make_shared<Symbol>("", symbol_type_e::INT));
+		m_condition->generate(insts, symbol);
+
+		auto alternative(std::make_shared<instructions::Label>());
+		auto end(std::make_shared<instructions::Label>());
+
+		insts.push_back(std::make_unique<instructions::Branch>(
+			symbol->var(),
+			alternative
+			));
+
+		m_positive->generate(insts);
+		insts.push_back(std::make_unique<instructions::Jump>(end));
+		alternative->set(insts.size());
+
+		m_negative->generate(insts);
+		end->set(insts.size());
+	}
+
+private:
+	const std::shared_ptr<Boolean> 		m_condition;
+	const std::shared_ptr<Statement> 	m_positive;
+	const std::shared_ptr<Statement> 	m_negative;
 };
 
 void finish(std::vector<std::unique_ptr<instructions::Instruction>>& insts);

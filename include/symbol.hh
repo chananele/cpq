@@ -7,6 +7,23 @@ namespace cpq {
 enum symbol_type_e {
 	INT		= 0,
 	REAL	= 1,
+
+	LAST_TYPE
+};
+
+/**
+ * The order here is important. It is assumed that the 3rd bit signals that operands
+ * should be compared in reverse order, using the bottom 2 bits to decide the comparison.
+ */
+enum comparison_e {
+	GT	= 0,
+	LT	= 1,
+	EQ	= 2,
+	NEQ = 3,
+	GTE	= 4,
+	LTE = 5,
+
+	LAST_COMPARISON
 };
 
 std::string to_string(symbol_type_e type);

@@ -6,10 +6,9 @@ instructions third
 start
     a := 4 * 5;
     d := a * 3.5;
-    c := d + (3 - 6) / 4;
+    c := d + (3 + 4 - 6) / 4;
     print (a);
-    read  (b);
-    print (4 * b);
+    print (4 * d);
     print (c);
     c := ival ( 3.33 );
     print (c);

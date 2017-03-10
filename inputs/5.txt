@@ -1,0 +1,17 @@
+instructions fifth
+
+    /* testing short circuit evaluation */
+    variables a, b: int;
+
+start
+    a := 1;
+    b := 5;
+    if (a < b || 4 > 5 && 6 < 6.1) then a := 1; else a := b;
+    print (a);
+    print (b);
+
+    while (a < 10) { a := a + 4; }
+    print (a);
+
+end
+ 
