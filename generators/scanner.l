@@ -21,6 +21,7 @@ static cpq::location loc;
 
 %}
 
+%option nounistd never-interactive
 %option noyywrap nounput batch debug noinput
 %x comment
 
