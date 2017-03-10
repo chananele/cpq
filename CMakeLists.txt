@@ -16,21 +16,11 @@ set(BISON_TEMP   ${CMAKE_BINARY_DIR}/inc/parser.cpp)
 set(BISON_SOURCE ${CMAKE_BINARY_DIR}/src/parser.cpp)
 set(BISON_HEADER ${CMAKE_BINARY_DIR}/inc/parser.hh)
 
-set(BISON_HEADERS parser stack location position)
-set(TEMP "")
-foreach(header ${BISON_HEADERS})
-    list(APPEND TEMP inc/${header})
-endforeach()
-set(BISON_HEADERS ${TEMP})
-
-include_directories(${CMAKE_BINARY_DIR}/inc)
-include_directories(${CMAKE_SOURCE_DIR}/inc)
-
-add_definitions(-D_CRT_SECURE_NO_WARNINGS)
-add_subdirectory("src")
-add_executable(cpq ${SRC} ${FLEX_SOURCE} ${BISON_SOURCE})
-set_property(TARGET cpq PROPERTY CXX_STANDARD 14)
-set_property(TARGET cpq PROPERTY CXX_STANDARD_REQUIRED ON)
+set(BISON_HEADERS "")
+list(APPEND BISON_HEADERS inc/location.hh)
+list(APPEND BISON_HEADERS inc/position.hh)
+list(APPEND BISON_HEADERS inc/parser.hh)
+list(APPEND BISON_HEADERS inc/stack.hh)
 
 add_custom_command(
     DEPENDS ${GENERATORS}/scanner.l
@@ -48,3 +38,19 @@ add_custom_command(
     COMMENT "generating parser files..."
 )
 
+include_directories(${CMAKE_BINARY_DIR}/inc)
+include_directories(${CMAKE_SOURCE_DIR}/inc)
+
+set(SRC "")
+
+list(APPEND SRC src/cpq.cpp)
+list(APPEND SRC src/driver.cpp)
+list(APPEND SRC src/statement.cpp)
+list(APPEND SRC src/symbol.cpp)
+list(APPEND SRC src/instruction.cpp)
+
+add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+add_executable(cpq ${FLEX_SOURCE} ${BISON_SOURCE} ${SRC})
+
+set_property(TARGET cpq PROPERTY CXX_STANDARD 14)
+set_property(TARGET cpq PROPERTY CXX_STANDARD_REQUIRED ON)
