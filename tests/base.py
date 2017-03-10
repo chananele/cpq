@@ -1,6 +1,11 @@
+import os
 import sys
 from pathlib2 import Path
 from subprocess import Popen, PIPE
+
+def universal(string):
+    if string is not None:
+        return os.linesep.join(string.split('\n'))
 
 class CompilerTest(object):
 
@@ -9,12 +14,12 @@ class CompilerTest(object):
     ret    = 0
 
     def test_compiler_output(self, context):
-        this = Path(__file__).absolute()
-        root = Path(this).parent.parent
-        compiler = context['compiler']
+        here = Path(__file__).absolute()
+        root = Path(here).parent.parent
         interpreter = root / 'qx.py'
+        assert interpreter.exists(), 'could not find the interpreter'
         
-        compiled = Popen([str(compiler), '-', '-'], stdin=PIPE, stdout=PIPE)
+        compiled = Popen([context['compiler'], '-', '-'], stdin=PIPE, stdout=PIPE)
         executed = Popen([sys.executable, str(interpreter), '-'], stdin=compiled.stdout, stdout=PIPE)
 
         compiled.stdin.write(self.input)
@@ -23,7 +28,7 @@ class CompilerTest(object):
         output, error = executed.communicate()
         ret = executed.returncode
 
-        assert output == self.output
-        assert error  == self.error
+        assert output == universal(self.output)
+        assert error  == universal(self.error)
         assert ret    == self.ret
  

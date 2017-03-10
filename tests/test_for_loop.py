@@ -13,5 +13,5 @@ class TestForLoop(base.CompilerTest):
             }
         end
     """
-    output = ''.join([str(i) + '\n' for i in xrange(1, 5)])
+    output = '1\n2\n3\n4\n'
  
