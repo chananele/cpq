@@ -10,13 +10,15 @@
 
 namespace cpq {
 
+namespace statements {
+
 class Statement {
 public:
 	Statement(const cpq::location& loc)
 		: m_loc(loc)
 	{}
 
-	virtual void generate(std::vector<std::unique_ptr<Instruction>>& instructions) const = 0;
+	virtual void generate(std::vector<std::unique_ptr<instructions::Instruction>>& insts) const = 0;
 
 protected:
 	const cpq::location m_loc;
@@ -30,7 +32,7 @@ public:
 	{}
 
 	virtual void generate(
-		std::vector<std::unique_ptr<Instruction>>& instructions,
+		std::vector<std::unique_ptr<instructions::Instruction>>& insts,
 		const std::shared_ptr<Symbol> symbol
 		) const = 0;
 
@@ -54,16 +56,9 @@ public:
 	}
 
 	virtual void generate(
-			std::vector<std::unique_ptr<Instruction>>& instructions,
+			std::vector<std::unique_ptr<instructions::Instruction>>& insts,
 			const std::shared_ptr<Symbol> symbol
-			) const override
-	{
-		instructions.push_back(std::make_unique<Assign>(
-			symbol->type(),
-			symbol->var(),
-			m_symbol->var()
-			));
-	}
+			) const override;
 
 private:
 	const std::shared_ptr<Symbol> m_symbol;
@@ -95,7 +90,7 @@ public:
 	}
 
 	virtual void generate(
-		std::vector<std::unique_ptr<Instruction>>& instructions,
+		std::vector<std::unique_ptr<instructions::Instruction>>& insts,
 		const std::shared_ptr<Symbol> symbol
 		) const override
 	{
@@ -105,19 +100,19 @@ public:
 		if (first->type() != type()) { auto temp = second; second = first; first = temp; }
 
 		auto temp(std::make_shared<Symbol>("", second->type()));
-		first->generate(instructions, symbol);
-		second->generate(instructions, temp);
+		first->generate(insts, symbol);
+		second->generate(insts, temp);
 
 		if (second->type() != type()) {
 			auto converted(std::make_shared<Symbol>("", type()));
-			instructions.push_back(std::make_unique<Cast>(
+			insts.push_back(std::make_unique<instructions::Cast>(
 				type(),
 				converted->var(),
 				temp->var()));
 			temp = converted;
 		}
 
-		instructions.push_back(std::make_unique<typename T::operation>(
+		insts.push_back(std::make_unique<typename T::operation>(
 			symbol->type(),
 			symbol->var(),
 			symbol->var(),
@@ -130,32 +125,32 @@ private:
 	const std::shared_ptr<Expression> m_right;
 };
 
-class Multiplication : public BinaryExpression<Multiplication>
+class Multiply : public BinaryExpression<Multiply>
 {
 public:
-	using BinaryExpression<Multiplication>::BinaryExpression;
-	using operation = Multiply;
+	using BinaryExpression<Multiply>::BinaryExpression;
+	using operation = instructions::Multiply;
 };
 
-class Division : public BinaryExpression<Division>
+class Divide : public BinaryExpression<Divide>
 {
 public:
-	using BinaryExpression<Division>::BinaryExpression;
-	using operation = Divide;
+	using BinaryExpression<Divide>::BinaryExpression;
+	using operation = instructions::Divide;
 };
 
-class Addition : public BinaryExpression<Addition>
+class Add : public BinaryExpression<Add>
 {
 public:
-	using BinaryExpression<Addition>::BinaryExpression;
-	using operation = Add;
+	using BinaryExpression<Add>::BinaryExpression;
+	using operation = instructions::Add;
 };
 
-class Subtraction : public BinaryExpression<Subtraction>
+class Subtract : public BinaryExpression<Subtract>
 {
 public:
-	using BinaryExpression<Subtraction>::BinaryExpression;
-	using operation = Subtract;
+	using BinaryExpression<Subtract>::BinaryExpression;
+	using operation = instructions::Subtract;
 };
 
 class Constant : public Expression {
@@ -165,16 +160,9 @@ public:
 	virtual std::string str() const = 0;
 
 	virtual void generate(
-			std::vector<std::unique_ptr<Instruction>>& instructions,
+			std::vector<std::unique_ptr<instructions::Instruction>>& insts,
 			const std::shared_ptr<Symbol> symbol
-			) const override
-	{
-		instructions.push_back(std::make_unique<Assign>(
-			symbol->type(),
-			symbol->var(),
-			str()
-			));
-	}
+			) const override;
 };
 
 template <class T>
@@ -239,36 +227,14 @@ public:
 		const std::shared_ptr<Expression> expression
 		);
 
-	virtual void generate(std::vector<std::unique_ptr<Instruction>>& instructions) const override
-	{
-		auto dest = m_symbol;
-		if (m_expression->type() != m_symbol->type()) {
-			auto temp = std::make_shared<Symbol>("", m_symbol->type());
-
-			m_expression->generate(
-				instructions,
-				temp
-				);
-			instructions.push_back(std::make_unique<Cast>(
-				m_symbol->type(),
-				m_symbol->var(),
-				temp->var()
-				));
-		}
-		else {
-			m_expression->generate(
-				instructions,
-				m_symbol
-				);
-		}
-	}
+	virtual void generate(
+			std::vector<std::unique_ptr<instructions::Instruction>>& insts
+			) const override;
 
 private:
 	const std::shared_ptr<Symbol>		m_symbol;
 	const std::shared_ptr<Expression>	m_expression;
 };
-
-namespace statements {
 
 class Read : public Statement
 {
@@ -279,14 +245,8 @@ public:
 	{}
 
 	virtual void generate(
-			std::vector<std::unique_ptr<Instruction>>& instructions
-			) const override
-	{
-		instructions.push_back(std::make_unique<instructions::Read>(
-			m_symbol->type(),
-			m_symbol->var()
-			));
-	}
+			std::vector<std::unique_ptr<instructions::Instruction>>& insts
+			) const override;
 
 private:
 	const std::shared_ptr<Symbol> m_symbol;
@@ -301,24 +261,65 @@ public:
 	{}
 
 	virtual void generate(
-			std::vector<std::unique_ptr<Instruction>>& instructions
-			) const override
-	{
-		auto temp(std::make_shared<Symbol>("", m_expression->type()));
-		m_expression->generate(instructions, temp);
-
-		instructions.push_back(std::make_unique<instructions::Write>(
-			temp->type(),
-			temp->var()
-			));
-	}
+			std::vector<std::unique_ptr<instructions::Instruction>>& insts
+			) const override;
 
 private:
 	const std::shared_ptr<Expression> m_expression;
 };
 
-}
+class Cast : public Statement {
+public:
+	Cast(
+		const cpq::location& loc,
+		const std::shared_ptr<Symbol> symbol,
+		const std::shared_ptr<Expression> expression
+	)
+		: Statement(loc)
+		, m_symbol(symbol)
+		, m_expression(expression)
+	{}
 
-using StatementList = std::list<std::unique_ptr<Statement>>;
+	virtual void generate(
+			std::vector<std::unique_ptr<instructions::Instruction>>& insts
+			) const override;
+
+private:
+	const std::shared_ptr<Symbol> m_symbol;
+	const std::shared_ptr<Expression> m_expression;
+};
+
+using StatementList = std::list<std::shared_ptr<Statement>>;
+
+class StatementBlock : public Statement {
+public:
+	StatementBlock(const location& loc, const std::shared_ptr<StatementList> stmts)
+		: Statement(loc)
+		, m_stmts(stmts)
+	{}
+
+	virtual void generate(
+			std::vector<std::unique_ptr<instructions::Instruction>>& insts
+			) const override;
+
+private:
+	const std::shared_ptr<StatementList> m_stmts;
+};
+
+class NullStatement : public Statement {
+public:
+	NullStatement(const location& loc)
+		: Statement(loc)
+	{}
+
+	virtual void generate(
+		std::vector<std::unique_ptr<instructions::Instruction>>& insts
+		) const override
+	{}
+};
+
+void finish(std::vector<std::unique_ptr<instructions::Instruction>>& insts);
+
+}
 
 }

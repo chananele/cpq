@@ -6,12 +6,12 @@
 
 namespace cpq {
 
+namespace instructions {
+
 class Instruction {
 public:
 	virtual void generate(std::ostream& os) const = 0;
 };
-
-namespace instructions {
 
 class Read : public Instruction {
 public:
@@ -50,9 +50,6 @@ private:
 	const symbol_type_e m_type;
 	const std::string 	m_var;
 };
-
-
-}
 
 class Cast : public Instruction {
 public:
@@ -148,4 +145,15 @@ public:
 	static const std::string instruction[];
 };
 
+class Halt : public Instruction {
+public:
+	virtual void generate(std::ostream& os) const override {
+		os << "HALT" << std::endl;
+		os << "copyright Chananel Engelberg, 2017" << std::endl;
+	}
+};
+
 }
+
+}
+

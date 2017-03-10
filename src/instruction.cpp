@@ -13,8 +13,6 @@ const std::string Write::instruction[] = {
 	/* [symbol_type_e::INT]  = */ "IPRT",
 	/* [symbol_type_e::READ] = */ "RPRT"
 };
-	
-}
 
 const std::string Cast::instruction[] = {
 	/* [symbol_type_e::INT]  = */ "RTOI",
@@ -45,5 +43,7 @@ const std::string Divide::instruction[] = {
 	/* [symbol_type_e::INT]	 = */ "IDIV",
 	/* [symbol_type_e::REAL] = */ "RDIV",
 };
+
+}
 
 }

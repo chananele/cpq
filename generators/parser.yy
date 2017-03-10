@@ -48,6 +48,7 @@
 %code
 {
 	#include "driver.hh"
+	using namespace cpq::statements;
 }
 
 %token
@@ -102,18 +103,25 @@
 ;
 
 %type <symbol_type_e> TYPE
-%type <std::shared_ptr<Constant>> NUMBER
+%type <std::shared_ptr<statements::Constant>> NUMBER
 
-%type <std::shared_ptr<StatementList>> CONSTS
+%type <std::shared_ptr<statements::StatementList>> DECLARATIONS
+%type <std::shared_ptr<statements::StatementList>> STATEMENTS
+%type <std::shared_ptr<statements::StatementList>> CONSTS
+
 %type <std::shared_ptr<std::vector<std::string>>> IDENTIFIERS
 
-%type <std::shared_ptr<Expression>> EXPRESSION
-%type <std::shared_ptr<Expression>> FACTOR
-%type <std::shared_ptr<Expression>> TERM
+%type <std::shared_ptr<statements::Expression>> EXPRESSION
+%type <std::shared_ptr<statements::Expression>> FACTOR
+%type <std::shared_ptr<statements::Expression>> TERM
 
-%type <std::shared_ptr<Statement>> ASSIGNMENT_STMT
-%type <std::shared_ptr<Statement>> WRITE_STMT
-%type <std::shared_ptr<Statement>> READ_STMT
+%type <std::shared_ptr<statements::Statement>> STATEMENT
+%type <std::shared_ptr<statements::Statement>> ASSIGNMENT_STMT
+%type <std::shared_ptr<statements::Statement>> BLOCK_STMT
+%type <std::shared_ptr<statements::Statement>> WRITE_STMT
+%type <std::shared_ptr<statements::Statement>> READ_STMT
+%type <std::shared_ptr<statements::Statement>> CAST_STMT
+%type <std::shared_ptr<statements::Statement>> CONTROL_STMT
 
 %token <std::string> IDENTIFIER "identifier"
 
@@ -131,12 +139,24 @@
 %start PROGRAM;
 
 PROGRAM : 
-	"instructions" "identifier" DECLARATIONS "start" STATEMENTS "end" {} 
+	"instructions" "identifier" DECLARATIONS "start" STATEMENTS "end" {
+		std::vector<std::unique_ptr<instructions::Instruction>> insts;
+		for (const auto& assn : *$3) {
+			assn->generate(insts);
+		}
+		for (const auto& stmt : *$5) {
+			stmt->generate(insts);
+		}
+		finish(insts);
+		for (const auto& inst : insts) {
+			inst->generate(std::cout);
+		}
+	} 
 ;
 
 DECLARATIONS : 
-	%empty					{}
-|	"variables" VARS CONSTS	{}
+	%empty					{ $$ = std::make_shared<StatementList>(); }
+|	"variables" VARS CONSTS	{ $$ = $3; }
 ;
 
 VARS : 
@@ -189,46 +209,28 @@ TYPE :
 ;
 
 STATEMENTS :
-	%empty					{}
-|	STATEMENTS STATEMENT	{}
+	%empty					{ $$ = std::make_shared<statements::StatementList>(); }
+|	STATEMENTS STATEMENT	{ $$ = $1; $$->push_back($2); }
 ;
 
 STATEMENT :
-	ASSIGNMENT_STMT	{
-		std::vector<std::unique_ptr<Instruction>> instructions;
-		$1->generate(instructions);
-		for (const auto& inst: instructions) {
-			inst->generate(std::cout);
-		}
-	}
-|	CAST_STMT		{}
-|	BLOCK_STMT		{}
-|	CONTROL_STMT	{}
-|	READ_STMT		{
-		std::vector<std::unique_ptr<Instruction>> instructions;
-		$1->generate(instructions);
-		for (const auto& inst: instructions) {
-			inst->generate(std::cout);
-		}
-	}
-|	WRITE_STMT		{
-		std::vector<std::unique_ptr<Instruction>> instructions;
-		$1->generate(instructions);
-		for (const auto& inst: instructions) {
-			inst->generate(std::cout);
-		}
-	}
+	ASSIGNMENT_STMT	{ $$ = $1; }
+|	CAST_STMT		{ $$ = $1; }
+|	BLOCK_STMT		{ $$ = $1; }
+|	CONTROL_STMT	{ $$ = std::make_shared<NullStatement>(@$); }
+|	READ_STMT		{ $$ = $1; }
+|	WRITE_STMT		{ $$ = $1; }
 ;
 
 WRITE_STMT :
-	"print" "(" EXPRESSION ")" ";" { $$ = std::make_shared<statements::Write>(@$, $3); }
+	"print" "(" EXPRESSION ")" ";" { $$ = std::make_shared<Write>(@$, $3); }
 ;
 
 READ_STMT :
 	"read" "(" "identifier" ")" ";" { 
 		try
 		{
-			$$ = std::make_shared<statements::Read>(@$, driver.variables[$3]);
+			$$ = std::make_shared<Read>(@$, driver.variables[$3]);
 		} catch (const std::out_of_range&) {
 			throw cpq::parser::syntax_error(@$, "reading to undefined variable: " + $3);
 		} 
@@ -246,8 +248,28 @@ ASSIGNMENT_STMT :
 	}
 
 CAST_STMT :
-	"identifier" ":=" "ival" "(" EXPRESSION ")" ";" {}
-|	"identifier" ":=" "rval" "(" EXPRESSION ")" ";" {}
+	"identifier" ":=" "ival" "(" EXPRESSION ")" ";" { 
+		try
+		{
+			auto symbol = driver.variables[$1];
+			if ($5->type() == symbol_type_e::INT) {
+				$$ = std::make_shared<Assignment>(@$, symbol, $5);
+			} else {
+				$$ = std::make_shared<Cast>(@$, symbol, $5);
+			}
+		} catch (const std::out_of_range&) {
+			throw cpq::parser::syntax_error(@$, "assigning to undefined variable: " + $1);
+		}
+	}
+|	"identifier" ":=" "rval" "(" EXPRESSION ")" ";" {
+		try
+		{
+			auto symbol = driver.variables[$1];
+			$$ = std::make_shared<Assignment>(@$, symbol, $5);
+		} catch (const std::out_of_range&) {
+			throw cpq::parser::syntax_error(@$, "assigning to undefined variable: " + $1);
+		}
+	}
 ;
 
 CONTROL_STMT :
@@ -259,7 +281,9 @@ CONTROL_STMT :
 ;
 
 BLOCK_STMT :
-	"{" STATEMENTS "}" {}
+	"{" STATEMENTS "}" {
+		$$ = std::make_shared<StatementBlock>(@$, $2);
+	}
 ;
 
 SWITCH_STMT :
@@ -298,8 +322,8 @@ BFACTOR :
 EXPRESSION :
 	EXPRESSION "addition" TERM	{ 
 		switch ($2) {
-			case '+': $$ = std::make_shared<Addition>(@$, $1, $3);		break;
-			case '-': $$ = std::make_shared<Subtraction>(@$, $1, $3);	break;
+			case '+': $$ = std::make_shared<Add>(@$, $1, $3);		break;
+			case '-': $$ = std::make_shared<Subtract>(@$, $1, $3);	break;
 			default:
 				throw cpq::parser::syntax_error(@$, "invalid operation");
 		}
@@ -311,8 +335,8 @@ EXPRESSION :
 TERM :
 	TERM "multiplication" FACTOR	{
 		switch ($2) {
-			case '*': $$ = std::make_shared<Multiplication>(@$, $1, $3);	break;
-			case '/': $$ = std::make_shared<Division>(@$, $1, $3);			break;
+			case '*': $$ = std::make_shared<Multiply>(@$, $1, $3);	break;
+			case '/': $$ = std::make_shared<Divide>(@$, $1, $3);	break;
 			default:
 				throw cpq::parser::syntax_error(@$, "invalid operation");
 		}
