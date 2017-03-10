@@ -99,9 +99,23 @@ public:
 		const std::shared_ptr<Symbol> symbol
 		) const override
 	{
-		auto temp(std::make_shared<Symbol>("", symbol->type()));
-		m_left->generate(instructions, temp);
-		m_right->generate(instructions, symbol);
+		auto first 	= m_left;
+		auto second = m_right;
+
+		if (first->type() != type()) { auto temp = second; second = first; first = temp; }
+
+		auto temp(std::make_shared<Symbol>("", second->type()));
+		first->generate(instructions, symbol);
+		second->generate(instructions, temp);
+
+		if (second->type() != type()) {
+			auto converted(std::make_shared<Symbol>("", type()));
+			instructions.push_back(std::make_unique<Cast>(
+				type(),
+				converted->var(),
+				temp->var()));
+			temp = converted;
+		}
 
 		instructions.push_back(std::make_unique<typename T::operation>(
 			symbol->type(),
@@ -227,10 +241,26 @@ public:
 
 	virtual void generate(std::vector<std::unique_ptr<Instruction>>& instructions) const override
 	{
-		m_expression->generate(
-			instructions,
-			m_symbol
-			);
+		auto dest = m_symbol;
+		if (m_expression->type() != m_symbol->type()) {
+			auto temp = std::make_shared<Symbol>("", m_symbol->type());
+
+			m_expression->generate(
+				instructions,
+				temp
+				);
+			instructions.push_back(std::make_unique<Cast>(
+				m_symbol->type(),
+				m_symbol->var(),
+				temp->var()
+				));
+		}
+		else {
+			m_expression->generate(
+				instructions,
+				m_symbol
+				);
+		}
 	}
 
 private:

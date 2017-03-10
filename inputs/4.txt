@@ -5,7 +5,7 @@ instructions third
 
 start
     a := 4 * 5;
-    b := a * 3.5;
+    d := a * 3.5;
     c := d + (3 - 6) / 4;
 end
 

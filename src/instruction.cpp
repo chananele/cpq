@@ -2,6 +2,11 @@
 
 namespace cpq {
 
+const std::string Cast::instruction[] = {
+	/* [symbol_type_e::INT]  = */ "RTOI",
+	/* [symbol_type_e::READ] = */ "ITOR"
+};
+
 const std::string Assign::instruction[] = {
 	/* [symbol_type_e::INT]  = */ "IASN",
 	/* [symbol_type_e::READ] = */ "RASN"

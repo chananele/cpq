@@ -11,6 +11,28 @@ public:
 	virtual void generate(std::ostream& os) const = 0;
 };
 
+class Cast : public Instruction {
+public:
+
+	static const std::string instruction[];
+
+	Cast(symbol_type_e type, const std::string& var, const std::string val)
+		: m_type(type)
+		, m_var(var)
+		, m_val(val)
+	{}
+
+	virtual void generate(std::ostream& os) const override {
+		os << instruction[m_type] << " ";
+		os << m_var << " " << m_val << std::endl;
+	}
+
+private:
+	const symbol_type_e m_type;
+	const std::string	m_var;
+	const std::string	m_val;
+};
+
 class Assign : public Instruction {
 public:
 
