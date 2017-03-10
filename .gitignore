@@ -11,3 +11,5 @@ include/stack.hh
 src/parser.cpp
 src/scanner.cpp
 
+*.swp
+
