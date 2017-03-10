@@ -1,6 +1,9 @@
 .project
+.cache
 
+__pycache__
 bin/*
 
+*.pyc
 *.swp
 
