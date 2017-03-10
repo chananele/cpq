@@ -15,7 +15,7 @@
 	#include <string>
 	#include <memory>
 	
-	#include "symbol.hh"
+	#include "symbol.h"
 	#include "statement.hh"
 	
 	namespace cpq {
@@ -149,11 +149,13 @@ PROGRAM :
 		for (const auto& stmt : *$5) {
 			stmt->generate(insts);
 		}
+		
 		finish(insts);
 		
 		for (const auto& inst : insts) {
-			inst->generate(std::cout);
+			std::cout << inst->generate() << std::endl;
 		}
+		std::cout << "Copyright Chananel Engelberg 2017." << std::endl;
 	} 
 ;
 

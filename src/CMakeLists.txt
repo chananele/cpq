@@ -1,0 +1,9 @@
+set(SOURCES "")
+
+list(APPEND SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/cpq.cpp)
+list(APPEND SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/driver.cpp)
+list(APPEND SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/statement.cpp)
+list(APPEND SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/symbol.cpp)
+
+add_subdirectory("instructions")
+set(SOURCES ${INSTRUCTIONS} ${SOURCES} PARENT_SCOPE)

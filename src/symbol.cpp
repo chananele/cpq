@@ -1,7 +1,7 @@
 #include <stdexcept>
 #include <string>
 
-#include "symbol.hh"
+#include "symbol.h"
 
 namespace cpq {
 

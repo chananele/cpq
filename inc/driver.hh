@@ -3,7 +3,7 @@
 # include <string>
 # include <unordered_map>
 
-#include "symbol.hh"
+#include "symbol.h"
 #include "parser.hh"
 
 # define YY_DECL cpq::parser::symbol_type yylex(cpq::driver& driver)

@@ -3,8 +3,7 @@
 #include "location.hh"
 #include "parser.hh"
 
-#include "symbol.hh"
-#include "instruction.hh"
+#include "symbol.h"
 #include "statement.hh"
 
 namespace cpq {

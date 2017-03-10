@@ -9,8 +9,23 @@
 #include <set>
 
 #include "location.hh"
-#include "instruction.hh"
-#include "symbol.hh"
+#include "symbol.h"
+
+#include "instructions/Label.h"
+#include "instructions/Instruction.h"
+
+#include "instructions/Branch.h"
+#include "instructions/Jump.h"
+#include "instructions/Halt.h"
+
+#include "instructions/Assign.h"
+#include "instructions/Cast.h"
+
+#include "instructions/Write.h"
+#include "instructions/Read.h"
+
+#include "instructions/Math.h"
+#include "instructions/Inequality.h"
 
 namespace cpq {
 
