@@ -1,7 +1,7 @@
 instructions fifth
 
     /* testing short circuit evaluation */
-    variables a, b: int;
+    variables a, b, c: int;
 
 start
     a := 1;
@@ -12,6 +12,17 @@ start
 
     while (a < 10) { a := a + 4; }
     print (a);
+
+    for (c := 3; a > b; a := a - 1) {
+        print(a);
+    }
+
+    switch (4 * 5) {
+        case 3:  print (111); break;
+        case 6:  print (222); break;
+        case 20: print (333); break;
+        default: print (666);
+    }
 
 end
  

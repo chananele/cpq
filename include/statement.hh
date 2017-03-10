@@ -1,5 +1,7 @@
 #pragma once
 
+#include <initializer_list>
+
 #include <memory>
 #include <vector>
 #include <string>
@@ -153,6 +155,13 @@ public:
 	using BinaryExpression<Subtract>::BinaryExpression;
 	using operation = instructions::Subtract;
 };
+
+std::shared_ptr<Expression> binary(
+	const cpq::location& loc,
+	char operation,
+	const std::shared_ptr<Expression> left,
+	const std::shared_ptr<Expression> right
+	);
 
 class Constant : public Expression {
 public:
@@ -520,6 +529,38 @@ private:
 	const std::shared_ptr<Statement> m_statement;
 };
 
+class ForStatement : public Statement {
+public:
+	ForStatement(
+		const cpq::location& loc,
+		const std::shared_ptr<Statement> assignment,
+		const std::shared_ptr<Boolean> condition,
+		const std::shared_ptr<Statement> step,
+		const std::shared_ptr<Statement> statement
+		)
+	: Statement(loc)
+	, m_assignment(assignment)
+	, m_loop(std::make_shared<WhileStatement>(
+		loc,
+		condition,
+		std::make_shared<StatementBlock>(
+			loc,
+			std::make_shared<StatementList>(
+				std::initializer_list<std::shared_ptr<Statement>>({statement, step}))
+			)
+		))
+	{}
+
+	virtual void generate(std::vector<std::unique_ptr<instructions::Instruction>>& insts) const override {
+		m_assignment->generate(insts);
+		m_loop->generate(insts);
+	}
+
+private:
+	const std::shared_ptr<Statement> 	m_assignment;
+	const std::shared_ptr<Statement>	m_loop;
+};
+
 class IfStatement : public Statement {
 public:
 	IfStatement(
@@ -557,6 +598,41 @@ private:
 	const std::shared_ptr<Boolean> 		m_condition;
 	const std::shared_ptr<Statement> 	m_positive;
 	const std::shared_ptr<Statement> 	m_negative;
+};
+
+class Case
+{
+public:
+	Case(const cpq::location& loc,
+		const std::shared_ptr<Constant> constant,
+		const std::shared_ptr<Statement> statement
+		)
+		: m_loc(loc)
+		, m_constant(constant)
+		, m_statement(statement)
+	{}
+
+	const cpq::location& 				m_loc;
+	const std::shared_ptr<Constant>		m_constant;
+	const std::shared_ptr<Statement>	m_statement;
+};
+
+class Switch : public Statement {
+public:
+	Switch (const cpq::location& loc)
+		: Statement(loc)
+	{}
+
+	void set_expression(const std::shared_ptr<Expression> expr);
+	void add_case(std::unique_ptr<Case> c);
+	void set_default_case(std::shared_ptr<Statement> stmt);
+
+	virtual void generate(std::vector<std::unique_ptr<instructions::Instruction>>& insts) const override;
+
+private:
+	std::vector<std::unique_ptr<Case>>	m_cases;
+	std::shared_ptr<Statement>			m_default;
+	std::shared_ptr<Expression>			m_expression;
 };
 
 void finish(std::vector<std::unique_ptr<instructions::Instruction>>& insts);

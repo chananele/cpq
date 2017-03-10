@@ -139,6 +139,78 @@ void StatementBlock::generate(
 	}
 }
 
+std::shared_ptr<Expression> binary(
+	const cpq::location& loc,
+	char operation,
+	const std::shared_ptr<Expression> left,
+	const std::shared_ptr<Expression> right
+	)
+{
+	switch (operation)
+	{
+	case '+': return std::make_shared<Add>(loc, left, right);
+	case '-': return std::make_shared<Subtract>(loc, left, right);
+	case '*': return std::make_shared<Multiply>(loc, left, right);
+	case '/': return std::make_shared<Divide>(loc, left, right);
+	default:
+		throw cpq::parser::syntax_error(loc, "invalid operation");
+	}
+}
+
+void Switch::generate(std::vector<std::unique_ptr<instructions::Instruction>>& insts) const {
+	auto expr(std::make_shared<Symbol>("", m_expression->type()));
+	auto comp(std::make_shared<Symbol>("", symbol_type_e::INT));
+
+	auto end(std::make_shared<instructions::Label>());
+
+	m_expression->generate(insts, expr);
+
+	for (const auto& c : m_cases) {
+		auto next(std::make_shared<instructions::Label>());
+
+		insts.push_back(std::make_unique<instructions::Inequality>(
+				comparison_e::EQ,
+				expr->type(),
+				comp->var(),
+				expr->var(),
+				c->m_constant->str()
+			));
+		insts.push_back(std::make_unique<instructions::Branch>(
+				comp->var(),
+				next
+			));
+		c->m_statement->generate(insts);
+		insts.push_back(std::make_unique<instructions::Jump>(
+				end
+			));
+		next->set(insts.size());
+	}
+
+	m_default->generate(insts);
+	end->set(insts.size());
+}
+
+void Switch::set_expression(const std::shared_ptr<Expression> expr) {
+	m_expression = expr;
+	
+	if (expr->type() == symbol_type_e::INT) {
+		for (const auto& c : m_cases) {
+			if (c->m_constant->type() == symbol_type_e::REAL) {
+				throw cpq::parser::syntax_error(c->m_loc, "case has invalid type");
+			}
+		}
+	}
+}
+
+
+void Switch::add_case(std::unique_ptr<Case> c) {
+	m_cases.push_back(std::move(c));	
+}
+
+void Switch::set_default_case(std::shared_ptr<Statement> stmt) {
+	m_default = stmt;
+}
+
 void finish(std::vector<std::unique_ptr<instructions::Instruction>>& insts)
 {
 	insts.push_back(std::make_unique<instructions::Halt>());

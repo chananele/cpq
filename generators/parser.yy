@@ -113,6 +113,10 @@
 %type <std::shared_ptr<statements::Statement>> READ_STMT
 %type <std::shared_ptr<statements::Statement>> CAST_STMT
 %type <std::shared_ptr<statements::Statement>> CONTROL_STMT
+%type <std::shared_ptr<statements::Statement>> SWITCH_STMT
+
+%type <std::shared_ptr<statements::Switch>>		CASES
+%type <std::shared_ptr<statements::Statement>>	STEP
 
 %type <std::shared_ptr<statements::Boolean>> BOOLEAN
 %type <std::shared_ptr<statements::Boolean>> BFACTOR
@@ -279,13 +283,13 @@ CONTROL_STMT :
 		$$ = std::make_shared<WhileStatement>(@$, $3, $5);
 	}
 |	"for"	"(" ASSIGNMENT_STMT BOOLEAN ";" STEP ")" STATEMENT		{
-		$$ = std::make_shared<NullStatement>(@$);
+		$$ = std::make_shared<ForStatement>(@$, $3, $4, $6, $8);
 	}
 |	"do" STATEMENT "until" "(" BOOLEAN ")" ";"						{
 		$$ = std::make_shared<UntilStatement>(@$, $5, $2);
 	}
 |	SWITCH_STMT														{
-		$$ = std::make_shared<NullStatement>(@$);
+		$$ = $1;
 	}
 ;
 
@@ -296,17 +300,38 @@ BLOCK_STMT :
 ;
 
 SWITCH_STMT :
-	"switch" "(" EXPRESSION ")" "{" CASES "default" ":" STATEMENTS "}" {}
+	"switch" "(" EXPRESSION ")" "{" CASES "default" ":" STATEMENTS "}" {
+		$6->set_default_case(std::make_shared<StatementBlock>(@$, $9));
+		$6->set_expression($3);
+		$$ = $6;
+	}
 ;
 
 CASES :
-	%empty											{}
-|	CASES "case" NUMBER ":" STATEMENTS "break" ";"	{}
+	%empty											{
+		$$ = std::make_shared<Switch>(@$); 
+	}
+|	CASES "case" NUMBER ":" STATEMENTS "break" ";"	{
+		$$ = $1;
+		$$->add_case(std::make_unique<Case>(@$, $3, std::make_shared<StatementBlock>(
+			@$, $5
+		)));
+	}
 ;
 	  
 STEP :
-	"identifier" ":=" "identifier" "addition" NUMBER		{}
-|	"identifier" ":=" "identifier" "multiplication" NUMBER	{} 
+	"identifier" ":=" "identifier" "addition" NUMBER		{
+		$$ = std::make_shared<Assignment>(@$, driver.variables[$1], binary(
+				@$, $4, std::make_shared<Load>(@$, driver.variables[$3]), $5
+			)
+		);
+	}
+|	"identifier" ":=" "identifier" "multiplication" NUMBER	{
+		$$ = std::make_shared<Assignment>(@$, driver.variables[$1], binary(
+				@$, $4, std::make_shared<Load>(@$, driver.variables[$3]), $5
+			)
+		);
+	} 
 ;
 
 BOOLEAN :
@@ -330,12 +355,7 @@ BFACTOR :
 
 EXPRESSION :
 	EXPRESSION "addition" TERM	{ 
-		switch ($2) {
-			case '+': $$ = std::make_shared<Add>(@$, $1, $3);		break;
-			case '-': $$ = std::make_shared<Subtract>(@$, $1, $3);	break;
-			default:
-				throw cpq::parser::syntax_error(@$, "invalid operation");
-		}
+		$$ = binary(@$, $2, $1, $3);
 		 
 	}
 |	TERM						{ $$ = $1; }
@@ -343,12 +363,7 @@ EXPRESSION :
 
 TERM :
 	TERM "multiplication" FACTOR	{
-		switch ($2) {
-			case '*': $$ = std::make_shared<Multiply>(@$, $1, $3);	break;
-			case '/': $$ = std::make_shared<Divide>(@$, $1, $3);	break;
-			default:
-				throw cpq::parser::syntax_error(@$, "invalid operation");
-		}
+		$$ = binary(@$, $2, $1, $3);
 	}
 |	FACTOR							{ $$ = $1; }
 ;
