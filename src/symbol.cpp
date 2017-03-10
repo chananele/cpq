@@ -22,11 +22,10 @@ static std::string variable() {
 	return std::string("var_") + std::to_string(i++);
 }
 
-Symbol::Symbol(const std::string& name, symbol_type_e type)
-	: m_name(name)
-	, m_var(variable())
+Symbol::Symbol(symbol_type_e type)
+	: m_constant(false)
 	, m_type(type)
-	, m_constant(false)
+	, m_var(variable())
 {}
 	
 }

@@ -6,6 +6,7 @@
 #include <vector>
 #include <string>
 #include <list>
+#include <set>
 
 #include "location.hh"
 #include "instruction.hh"
@@ -102,12 +103,12 @@ public:
 
 		if (first->type() != type()) { auto temp = second; second = first; first = temp; }
 
-		auto temp(std::make_shared<Symbol>("", second->type()));
+		auto temp(std::make_shared<Symbol>(second->type()));
 		first->generate(insts, symbol);
 		second->generate(insts, temp);
 
 		if (second->type() != type()) {
-			auto converted(std::make_shared<Symbol>("", type()));
+			auto converted(std::make_shared<Symbol>(type()));
 			insts.push_back(std::make_unique<instructions::Cast>(
 				type(),
 				converted->var(),
@@ -316,20 +317,14 @@ private:
 	const std::shared_ptr<StatementList> m_stmts;
 };
 
-class NullStatement : public Statement {
+class Boolean : public Expression {
 public:
-	NullStatement(const location& loc)
-		: Statement(loc)
+	Boolean(const cpq::location& loc)
+		: Expression(loc)
 	{}
 
-	virtual void generate(
-		std::vector<std::unique_ptr<instructions::Instruction>>& insts
-		) const override
-	{}
-};
+	virtual symbol_type_e type() const override { return symbol_type_e::BOOLEAN; }
 
-class Boolean {
-public:
 	virtual void generate(
 		std::vector<std::unique_ptr<instructions::Instruction>>& insts,
 		const std::shared_ptr<Symbol> symbol
@@ -339,8 +334,12 @@ public:
 template <bool res>
 class Connective : public Boolean {
 public:
-	Connective(const std::shared_ptr<Boolean> left, const std::shared_ptr<Boolean> right)
-		: m_left(left)
+	Connective(
+		const cpq::location& loc,
+		const std::shared_ptr<Boolean> left,
+		const std::shared_ptr<Boolean> right)
+		: Boolean(loc)
+		, m_left(left)
 		, m_right(right)
 	{}
 
@@ -351,7 +350,7 @@ public:
 	{
 		auto label(std::make_shared<instructions::Label>());
 		m_left->generate(insts, symbol);
-		auto comp(std::make_shared<Symbol>("", symbol_type_e::INT));
+		auto comp(std::make_shared<Symbol>(symbol_type_e::BOOLEAN));
 		insts.push_back(std::make_unique<instructions::Inequality>(
 			comparison_e::NEQ,
 			symbol_type_e::INT,
@@ -374,8 +373,9 @@ using And = Connective<false>;
 
 class Negate : public Boolean {
 public:
-	Negate(const std::shared_ptr<Boolean> boolean)
-		: m_boolean(boolean)
+	Negate(const cpq::location& loc, const std::shared_ptr<Boolean> boolean)
+		: Boolean(loc)
+		, m_boolean(boolean)
 	{}
 
 	virtual void generate(
@@ -400,11 +400,13 @@ private:
 class Comparison : public Boolean {
 public:
 	Comparison(
+		const cpq::location& loc,
 		const comparison_e comp,
 		const std::shared_ptr<Expression> left,
 		const std::shared_ptr<Expression> right
 	)
-		: m_comp(comp)
+		: Boolean(loc)
+		, m_comp(comp)
 		, m_left(left)
 		, m_right(right)
 	{}
@@ -414,8 +416,8 @@ public:
 		const std::shared_ptr<Symbol> symbol
 	) const override
 	{
-		auto first	(std::make_shared<Symbol>("", m_left->type()));
-		auto second	(std::make_shared<Symbol>("", m_right->type()));
+		auto first	(std::make_shared<Symbol>(m_left->type()));
+		auto second	(std::make_shared<Symbol>(m_right->type()));
 
 		m_left	->generate(insts, first);
 		m_right	->generate(insts, second);
@@ -424,7 +426,7 @@ public:
 
 		auto converted(first);
 		if (first->type() != type()) {
-			converted = std::make_shared<Symbol>("", type());
+			converted = std::make_shared<Symbol>(type());
 			insts.push_back(std::make_unique<instructions::Cast>(
 				converted->type(),
 				converted->var(),
@@ -456,21 +458,21 @@ private:
 	const std::shared_ptr<Expression> 	m_right;
 };
 
-class WhileStatement : public Statement {
+class While : public Statement {
 public:
-	WhileStatement(
+	While(
 		const cpq::location& loc,
 		const std::shared_ptr<Boolean> boolean,
 		const std::shared_ptr<Statement> statement
 		)
 		: Statement(loc)
-		, m_boolean(std::make_shared<Negate>(boolean))
+		, m_boolean(std::make_shared<Negate>(loc, boolean))
 		, m_statement(statement)
 	{}
 
 	virtual void generate(std::vector<std::unique_ptr<instructions::Instruction>>& insts) const override {
 
-		auto result(std::make_shared<Symbol>("", symbol_type_e::INT));
+		auto result(std::make_shared<Symbol>(symbol_type_e::BOOLEAN));
 
 		auto condition(std::make_shared<instructions::Label>());
 		auto code(std::make_shared<instructions::Label>());
@@ -493,9 +495,9 @@ private:
 	const std::shared_ptr<Statement> m_statement;
 };
 
-class UntilStatement : public Statement {
+class Until : public Statement {
 public:
-	UntilStatement(
+	Until(
 		const cpq::location& loc,
 		const std::shared_ptr<Boolean> boolean,
 		const std::shared_ptr<Statement> statement
@@ -507,7 +509,7 @@ public:
 
 	virtual void generate(std::vector<std::unique_ptr<instructions::Instruction>>& insts) const override {
 
-		auto result(std::make_shared<Symbol>("", symbol_type_e::INT));
+		auto result(std::make_shared<Symbol>(symbol_type_e::INT));
 
 		auto condition(std::make_shared<instructions::Label>());
 
@@ -529,9 +531,9 @@ private:
 	const std::shared_ptr<Statement> m_statement;
 };
 
-class ForStatement : public Statement {
+class For : public Statement {
 public:
-	ForStatement(
+	For(
 		const cpq::location& loc,
 		const std::shared_ptr<Statement> assignment,
 		const std::shared_ptr<Boolean> condition,
@@ -540,7 +542,7 @@ public:
 		)
 	: Statement(loc)
 	, m_assignment(assignment)
-	, m_loop(std::make_shared<WhileStatement>(
+	, m_loop(std::make_shared<While>(
 		loc,
 		condition,
 		std::make_shared<StatementBlock>(
@@ -561,9 +563,9 @@ private:
 	const std::shared_ptr<Statement>	m_loop;
 };
 
-class IfStatement : public Statement {
+class If : public Statement {
 public:
-	IfStatement(
+	If(
 		const cpq::location& loc,
 		const std::shared_ptr<Boolean> condition,
 		const std::shared_ptr<Statement> positive,
@@ -575,7 +577,7 @@ public:
 	{}
 
 	virtual void generate(std::vector<std::unique_ptr<instructions::Instruction>>& insts) const override {
-		auto symbol(std::make_shared<Symbol>("", symbol_type_e::INT));
+		auto symbol(std::make_shared<Symbol>(symbol_type_e::INT));
 		m_condition->generate(insts, symbol);
 
 		auto alternative(std::make_shared<instructions::Label>());
@@ -630,6 +632,7 @@ public:
 	virtual void generate(std::vector<std::unique_ptr<instructions::Instruction>>& insts) const override;
 
 private:
+	std::set<float>						m_options;
 	std::vector<std::unique_ptr<Case>>	m_cases;
 	std::shared_ptr<Statement>			m_default;
 	std::shared_ptr<Expression>			m_expression;

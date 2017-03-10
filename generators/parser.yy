@@ -173,7 +173,7 @@ DECLARATION :
 			if (driver.variables.find(id) != driver.variables.end()) {
 				throw cpq::parser::syntax_error(@$, "variable redefinition: " + id);
 			}
-			driver.variables[id] = std::make_shared<Symbol>(id, $3);
+			driver.variables[id] = std::make_shared<Symbol>($3);
 		}
 	}
 ;
@@ -198,7 +198,7 @@ CONSTS :
 		if (driver.variables.find($4) != driver.variables.end()) {
 			throw cpq::parser::syntax_error(@$, "variable redefinition: " + $4);
 		}
-		auto symbol = std::make_shared<Symbol>($4, $3);
+		auto symbol = std::make_shared<Symbol>($3);
 		driver.variables[$4] = symbol;
 		
 		$$->push_back(std::make_unique<Assignment>(@$, symbol, $6));
@@ -230,7 +230,7 @@ WRITE_STMT :
 ;
 
 READ_STMT :
-	"read" "(" "identifier" ")" ";" { 
+	"read" "(" "identifier" ")" ";" {
 		try
 		{
 			$$ = std::make_shared<Read>(@$, driver.variables[$3]);
@@ -277,16 +277,16 @@ CAST_STMT :
 
 CONTROL_STMT :
 	"if" 	"(" BOOLEAN ")" "then" STATEMENT "else" STATEMENT		{
-		$$ = std::make_shared<IfStatement>(@$, $3, $6, $8);
+		$$ = std::make_shared<If>(@$, $3, $6, $8);
 	}
 |	"while" "(" BOOLEAN ")"  STATEMENT								{
-		$$ = std::make_shared<WhileStatement>(@$, $3, $5);
+		$$ = std::make_shared<While>(@$, $3, $5);
 	}
 |	"for"	"(" ASSIGNMENT_STMT BOOLEAN ";" STEP ")" STATEMENT		{
-		$$ = std::make_shared<ForStatement>(@$, $3, $4, $6, $8);
+		$$ = std::make_shared<For>(@$, $3, $4, $6, $8);
 	}
 |	"do" STATEMENT "until" "(" BOOLEAN ")" ";"						{
-		$$ = std::make_shared<UntilStatement>(@$, $5, $2);
+		$$ = std::make_shared<Until>(@$, $5, $2);
 	}
 |	SWITCH_STMT														{
 		$$ = $1;
@@ -301,7 +301,7 @@ BLOCK_STMT :
 
 SWITCH_STMT :
 	"switch" "(" EXPRESSION ")" "{" CASES "default" ":" STATEMENTS "}" {
-		$6->set_default_case(std::make_shared<StatementBlock>(@$, $9));
+		$6->set_default_case(std::make_shared<StatementBlock>(@9, $9));
 		$6->set_expression($3);
 		$$ = $6;
 	}
@@ -313,22 +313,34 @@ CASES :
 	}
 |	CASES "case" NUMBER ":" STATEMENTS "break" ";"	{
 		$$ = $1;
-		$$->add_case(std::make_unique<Case>(@$, $3, std::make_shared<StatementBlock>(
-			@$, $5
+		$$->add_case(std::make_unique<Case>(@3, $3, std::make_shared<StatementBlock>(
+			@5, $5
 		)));
 	}
 ;
 	  
 STEP :
 	"identifier" ":=" "identifier" "addition" NUMBER		{
+		if (driver.variables.find($1) == driver.variables.end()) {
+			throw cpq::parser::syntax_error(@1, "assigning to undefined variable: " + $1);
+		}
+		if (driver.variables.find($3) == driver.variables.end()) {
+			throw cpq::parser::syntax_error(@3, "loading undefined variable: " + $3);
+		}
 		$$ = std::make_shared<Assignment>(@$, driver.variables[$1], binary(
-				@$, $4, std::make_shared<Load>(@$, driver.variables[$3]), $5
+				@$, $4, std::make_shared<Load>(@3, driver.variables[$3]), $5
 			)
 		);
 	}
 |	"identifier" ":=" "identifier" "multiplication" NUMBER	{
+		if (driver.variables.find($1) == driver.variables.end()) {
+			throw cpq::parser::syntax_error(@1, "assigning to undefined variable: " + $1);
+		}
+		if (driver.variables.find($3) == driver.variables.end()) {
+			throw cpq::parser::syntax_error(@3, "loading undefined variable: " + $3);
+		}
 		$$ = std::make_shared<Assignment>(@$, driver.variables[$1], binary(
-				@$, $4, std::make_shared<Load>(@$, driver.variables[$3]), $5
+				@$, $4, std::make_shared<Load>(@3, driver.variables[$3]), $5
 			)
 		);
 	} 
@@ -339,18 +351,18 @@ BOOLEAN :
 ;
 
 BEXPR :
-	BEXPR "or" BTERM	{ $$ = std::make_shared<Or>($1, $3); }
+	BEXPR "or" BTERM	{ $$ = std::make_shared<Or>(@$, $1, $3); }
 |	BTERM				{ $$ = $1; }
 ;
 
 BTERM :
-	BTERM "and" BFACTOR { $$ = std::make_shared<And>($1, $3); }
+	BTERM "and" BFACTOR { $$ = std::make_shared<And>(@$, $1, $3); }
 |	BFACTOR				{ $$ = $1; }
 ;
 
 BFACTOR :
-	"not" "(" BEXPR ")"					{ $$ = std::make_shared<Negate>($3); 				}
-|	EXPRESSION "comparison" EXPRESSION	{ $$ = std::make_shared<Comparison>($2, $1, $3); 	}
+	"not" "(" BEXPR ")"					{ $$ = std::make_shared<Negate>(@$, $3); 				}
+|	EXPRESSION "comparison" EXPRESSION	{ $$ = std::make_shared<Comparison>(@$, $2, $1, $3); 	}
 ;
 
 EXPRESSION :

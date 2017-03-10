@@ -4,8 +4,8 @@ instructions invalid
     variables a, b : int; const real c := 5;
 
 start
-    a := 4
-    b := 3.0
-    print (a)
+    a := 4;
+    b := 3.0;
+    print (a);
 end
 
