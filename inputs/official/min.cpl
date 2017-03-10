@@ -1,0 +1,14 @@
+instructions Min /* Finding minimum between two numbers */
+   variables a : real;
+       b: real;
+
+start
+   read (a);
+   read (b);
+ 
+   if (a < b) then  
+     print (a);
+   else  
+     print (b); 
+end
+  

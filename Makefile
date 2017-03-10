@@ -18,13 +18,13 @@ $(OUT)/%.o : $(SRC)/%.cpp $(HEADERS)
 	$(CXX) -c -o $@ $< $(CXXFLAGS)
 
 $(SRC)/scanner.cpp : $(GENERATOR)/scanner.l
-	flex -o $@ $<
+	flex -L -o $@ $<
 
 $(INCLUDE)/parser.hh $(SRC)/parser.cpp : $(GENERATOR)/parser.yy
 	@# Output goes to the include directory because most of the files that are
 	@# generated are headers. Afterwards we move the source file to the appropriate
 	@# location.
-	bison --output=$(INCLUDE)/parser.cpp --defines=$(INCLUDE)/parser.hh $<
+	bison -l --output=$(INCLUDE)/parser.cpp --defines=$(INCLUDE)/parser.hh $<
 	mv $(INCLUDE)/parser.cpp $(SRC)/parser.cpp
 
 .PHONY : look clean

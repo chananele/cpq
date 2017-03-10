@@ -1,0 +1,26 @@
+instructions andor    
+
+start
+   /* should print 7788 */
+
+   if (10 > 2 || 10 > 100) then
+       print (7);
+   else 
+       print (8);
+
+   if (4 < 2 || 13 >= 12) then
+       print (7);
+   else 
+       print (8);
+
+  if (9 > 0 && 4 < 2 || 12 >= 20) then
+         print (7);
+  else  
+      print (8); 
+
+  if (not (12 > 9)) then
+         print (7);
+  else 
+         print (8);
+
+end

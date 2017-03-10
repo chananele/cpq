@@ -1,0 +1,28 @@
+instructions Binary  /*convert from decimal to binary */
+
+    variables a, b: int;
+	    temp, ten : int;
+
+	start
+
+    b := 0;
+    
+    while (b == 0) {
+     read (a);
+     if(a > 0 && a <= 1000) then 
+	     b := 1;
+     else { }
+    }
+
+    ten := 1;
+    b := 0;
+    
+    while (a > 0) {
+      temp := a-a/2*2;
+      b := b + temp * ten;
+      ten := ten * 10;
+      a := a / 2;
+    }
+    print (b);
+
+    end

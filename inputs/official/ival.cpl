@@ -1,0 +1,32 @@
+instructions ii 
+
+   /* should print 3  8   16.0   17.0  18.0 (or 19.0 if RTOI rounds up) */    
+   variables a, b: real;
+       i, j: int;
+
+start
+   a := 3.2;
+   j := 8;
+   
+   i := ival (a);
+   print (i);
+   
+   i := ival (j);
+   print (i);
+   
+   i := 16;
+   a := rval (i);
+   print (a);
+   
+   b := 17.0;
+   
+   a := rval (b);
+   
+   print (a);
+   
+   b := 18.9;
+   a := ival (b);
+   
+   print (a);
+
+end
