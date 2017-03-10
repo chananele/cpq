@@ -25,7 +25,7 @@ endforeach()
 set(BISON_HEADERS ${TEMP})
 
 include_directories(${CMAKE_BINARY_DIR}/inc)
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${CMAKE_SOURCE_DIR}/inc)
 
 add_subdirectory("src")
 add_executable(cpq ${SRC} ${FLEX_SOURCE} ${BISON_SOURCE})
