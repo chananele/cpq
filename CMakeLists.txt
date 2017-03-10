@@ -54,5 +54,13 @@ endif()
 
 add_executable(cpq ${SOURCES})
 
+set(CMAKE_TEST_DIR ${CMAKE_SOURCE_DIR}/tests)
+enable_testing()
+add_test(
+    NAME tests
+    COMMAND py.test --compiler=$<TARGET_FILE:cpq>
+    WORKING_DIRECTORY ${CMAKE_TEST_DIR}
+)
+
 set_property(TARGET cpq PROPERTY CXX_STANDARD 14)
 set_property(TARGET cpq PROPERTY CXX_STANDARD_REQUIRED ON)
