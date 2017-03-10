@@ -268,6 +268,57 @@ private:
 	const std::shared_ptr<Expression>	m_expression;
 };
 
+namespace statements {
+
+class Read : public Statement
+{
+public:
+	Read(const cpq::location& loc, const std::shared_ptr<Symbol> symbol)
+		: Statement(loc)
+		, m_symbol(symbol)
+	{}
+
+	virtual void generate(
+			std::vector<std::unique_ptr<Instruction>>& instructions
+			) const override
+	{
+		instructions.push_back(std::make_unique<instructions::Read>(
+			m_symbol->type(),
+			m_symbol->var()
+			));
+	}
+
+private:
+	const std::shared_ptr<Symbol> m_symbol;
+};
+
+class Write : public Statement
+{
+public:
+	Write(const cpq::location& loc, const std::shared_ptr<Expression> expression)
+		: Statement(loc)
+		, m_expression(expression)
+	{}
+
+	virtual void generate(
+			std::vector<std::unique_ptr<Instruction>>& instructions
+			) const override
+	{
+		auto temp(std::make_shared<Symbol>("", m_expression->type()));
+		m_expression->generate(instructions, temp);
+
+		instructions.push_back(std::make_unique<instructions::Write>(
+			temp->type(),
+			temp->var()
+			));
+	}
+
+private:
+	const std::shared_ptr<Expression> m_expression;
+};
+
+}
+
 using StatementList = std::list<std::unique_ptr<Statement>>;
 
 }

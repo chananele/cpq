@@ -111,7 +111,9 @@
 %type <std::shared_ptr<Expression>> FACTOR
 %type <std::shared_ptr<Expression>> TERM
 
-%type <std::shared_ptr<Assignment>> ASSIGNMENT_STMT
+%type <std::shared_ptr<Statement>> ASSIGNMENT_STMT
+%type <std::shared_ptr<Statement>> WRITE_STMT
+%type <std::shared_ptr<Statement>> READ_STMT
 
 %token <std::string> IDENTIFIER "identifier"
 
@@ -202,16 +204,35 @@ STATEMENT :
 |	CAST_STMT		{}
 |	BLOCK_STMT		{}
 |	CONTROL_STMT	{}
-|	READ_STMT		{}
-|	WRITE_STMT		{}
+|	READ_STMT		{
+		std::vector<std::unique_ptr<Instruction>> instructions;
+		$1->generate(instructions);
+		for (const auto& inst: instructions) {
+			inst->generate(std::cout);
+		}
+	}
+|	WRITE_STMT		{
+		std::vector<std::unique_ptr<Instruction>> instructions;
+		$1->generate(instructions);
+		for (const auto& inst: instructions) {
+			inst->generate(std::cout);
+		}
+	}
 ;
 
 WRITE_STMT :
-	"print" "(" EXPRESSION ")" ";" {}
+	"print" "(" EXPRESSION ")" ";" { $$ = std::make_shared<statements::Write>(@$, $3); }
 ;
 
 READ_STMT :
-	"read" "(" "identifier" ")" ";" {}
+	"read" "(" "identifier" ")" ";" { 
+		try
+		{
+			$$ = std::make_shared<statements::Read>(@$, driver.variables[$3]);
+		} catch (const std::out_of_range&) {
+			throw cpq::parser::syntax_error(@$, "reading to undefined variable: " + $3);
+		} 
+	}
 ;
 
 ASSIGNMENT_STMT :

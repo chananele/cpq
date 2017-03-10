@@ -11,6 +11,49 @@ public:
 	virtual void generate(std::ostream& os) const = 0;
 };
 
+namespace instructions {
+
+class Read : public Instruction {
+public:
+
+	static const std::string instruction[];
+
+	Read(symbol_type_e type, const std::string& var)
+		: m_type(type)
+		, m_var(var)
+	{}
+
+	virtual void generate(std::ostream& os) const override {
+		os << instruction[m_type] << " " << m_var << std::endl;
+	}
+
+private:
+	const symbol_type_e m_type;
+	const std::string 	m_var;
+};
+
+class Write : public Instruction {
+public:
+
+	static const std::string instruction[];
+
+	Write(symbol_type_e type, const std::string& var)
+		: m_type(type)
+		, m_var(var)
+	{}
+
+	virtual void generate(std::ostream& os) const override {
+		os << instruction[m_type] << " " << m_var << std::endl;
+	}
+
+private:
+	const symbol_type_e m_type;
+	const std::string 	m_var;
+};
+
+
+}
+
 class Cast : public Instruction {
 public:
 

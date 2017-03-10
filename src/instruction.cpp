@@ -2,6 +2,20 @@
 
 namespace cpq {
 
+namespace instructions {
+	
+const std::string Read::instruction[] = {
+	/* [symbol_type_e::INT]  = */ "IINP",
+	/* [symbol_type_e::READ] = */ "RINP"
+};
+
+const std::string Write::instruction[] = {
+	/* [symbol_type_e::INT]  = */ "IPRT",
+	/* [symbol_type_e::READ] = */ "RPRT"
+};
+	
+}
+
 const std::string Cast::instruction[] = {
 	/* [symbol_type_e::INT]  = */ "RTOI",
 	/* [symbol_type_e::READ] = */ "ITOR"
