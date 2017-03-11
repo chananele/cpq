@@ -16,7 +16,28 @@
 	#include <memory>
 	
 	#include "symbol.h"
-	#include "statement.hh"
+	
+	#include "statements/Statement.h"
+	#include "statements/Assignment.h"
+	#include "statements/Cast.h"
+	#include "statements/For.h"
+	#include "statements/If.h"
+	#include "statements/NullStatement.h"
+	#include "statements/Read.h"
+	#include "statements/Write.h"
+	#include "statements/StatementBlock.h"
+	#include "statements/Switch.h"
+	#include "statements/Until.h"
+	#include "statements/While.h"
+	
+	#include "expressions/Expression.h"
+	#include "expressions/Constant.h"
+	#include "expressions/Load.h"
+	#include "expressions/Math.h"
+	
+	#include "booleans/Boolean.h"
+	#include "booleans/Basic.h"
+	#include "booleans/Comparison.h"
 	
 	namespace cpq {
 		class driver;
@@ -39,7 +60,10 @@
 %code
 {
 	#include "driver.hh"
+	
+	using namespace cpq::expressions;
 	using namespace cpq::statements;
+	using namespace cpq::booleans;
 }
 
 %token
@@ -94,7 +118,7 @@
 ;
 
 %type <symbol_type_e> TYPE
-%type <std::shared_ptr<statements::Constant>> NUMBER
+%type <std::shared_ptr<expressions::Constant>> NUMBER
 
 %type <std::shared_ptr<statements::StatementList>> DECLARATIONS
 %type <std::shared_ptr<statements::StatementList>> STATEMENTS
@@ -102,9 +126,9 @@
 
 %type <std::shared_ptr<std::vector<std::string>>> IDENTIFIERS
 
-%type <std::shared_ptr<statements::Expression>> EXPRESSION
-%type <std::shared_ptr<statements::Expression>> FACTOR
-%type <std::shared_ptr<statements::Expression>> TERM
+%type <std::shared_ptr<expressions::Expression>> EXPRESSION
+%type <std::shared_ptr<expressions::Expression>> FACTOR
+%type <std::shared_ptr<expressions::Expression>> TERM
 
 %type <std::shared_ptr<statements::Statement>> STATEMENT
 %type <std::shared_ptr<statements::Statement>> ASSIGNMENT_STMT
@@ -118,10 +142,10 @@
 %type <std::shared_ptr<statements::Switch>>		CASES
 %type <std::shared_ptr<statements::Statement>>	STEP
 
-%type <std::shared_ptr<statements::Boolean>> BOOLEAN
-%type <std::shared_ptr<statements::Boolean>> BFACTOR
-%type <std::shared_ptr<statements::Boolean>> BEXPR
-%type <std::shared_ptr<statements::Boolean>> BTERM
+%type <std::shared_ptr<booleans::Boolean>> BOOLEAN
+%type <std::shared_ptr<booleans::Boolean>> BFACTOR
+%type <std::shared_ptr<booleans::Boolean>> BEXPR
+%type <std::shared_ptr<booleans::Boolean>> BTERM
 
 %token <std::string> IDENTIFIER "identifier"
 
@@ -212,7 +236,7 @@ TYPE :
 ;
 
 STATEMENTS :
-	%empty					{ $$ = std::make_shared<statements::StatementList>(); }
+	%empty					{ $$ = std::make_shared<StatementList>(); }
 |	STATEMENTS STATEMENT	{ $$ = $1; $$->push_back($2); }
 ;
 

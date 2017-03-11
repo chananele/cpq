@@ -40,8 +40,8 @@ public:
 private:
 	std::string 												m_file;
 	std::unordered_map<std::string, std::shared_ptr<Symbol>>	m_variables;
-	std::vector<std::unique_ptr<instructions::Instruction>>		m_instructions;
-	bool														m_error;
+	instructions::InstructionList								m_instructions;
+	bool														m_error = false;
 };
 
 }

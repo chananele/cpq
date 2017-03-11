@@ -18,7 +18,5 @@ Design
 
 Todo
 ====
-1. Add error handling in the compiler.
-2. Refactor the statements.
-3. Add documentation about design decisions.
-4. Complete the tests.
+1. Add documentation about design decisions.
+2. Complete the tests.
