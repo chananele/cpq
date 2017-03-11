@@ -141,6 +141,9 @@
 PROGRAM : 
 	"instructions" "identifier" DECLARATIONS "start" STATEMENTS "end" {
 		
+		if (driver.m_error)
+			YYABORT;
+		
 		auto& insts = driver.m_instructions;
 		
 		for (const auto& assn : *$3) {
@@ -220,6 +223,7 @@ STATEMENT :
 |	CONTROL_STMT	{ $$ = $1; }
 |	READ_STMT		{ $$ = $1; }
 |	WRITE_STMT		{ $$ = $1; }
+|	error			{ $$ = std::make_shared<NullStatement>(@$); }
 ;
 
 WRITE_STMT :
@@ -230,7 +234,7 @@ READ_STMT :
 	"read" "(" "identifier" ")" ";" {
 		try
 		{
-			$$ = std::make_shared<Read>(@$, driver.m_variables[$3]);
+			$$ = std::make_shared<Read>(@$, driver.m_variables.at($3));
 		} catch (const std::out_of_range&) {
 			throw cpq::parser::syntax_error(@$, "reading to undefined variable: " + $3);
 		} 
@@ -241,7 +245,7 @@ ASSIGNMENT_STMT :
 	"identifier" ":=" EXPRESSION ";" { 
 		try
 		{
-			$$ = std::make_shared<Assignment>(@$, driver.m_variables[$1], $3);
+			$$ = std::make_shared<Assignment>(@$, driver.m_variables.at($1), $3);
 		} catch (const std::out_of_range&) {
 			throw cpq::parser::syntax_error(@$, "assigning to undefined variable: " + $1);
 		} 
@@ -341,6 +345,7 @@ STEP :
 			)
 		);
 	} 
+|	error { $$ = std::make_shared<NullStatement>(@$); }
 ;
 
 BOOLEAN :
@@ -379,13 +384,22 @@ TERM :
 	 
 FACTOR :
 	"(" EXPRESSION ")"			{ $$ = $2; }
-|	"identifier"				{ $$ = std::make_shared<Load>(@$, driver.m_variables[$1]); }
+|	"identifier"				{
+		try 
+		{
+			$$ = std::make_shared<Load>(@$, driver.m_variables.at($1));
+		}
+		catch (const std::out_of_range&) {
+			throw cpq::parser::syntax_error(@$, "loading undefined variable: " + $1);
+		}
+	}
 |	NUMBER						{ $$ = $1; }
 ;
 
 NUMBER:
-	"integer" 	{ $$ = std::make_shared<Int>(@$, $1);  }
-|	"real"		{ $$ = std::make_shared<Real>(@$, $1); }
+	"integer" 	{ $$ = std::make_shared<Int>(@$, $1);	}
+|	"real"		{ $$ = std::make_shared<Real>(@$, $1);	}
+;
 
 
 %%

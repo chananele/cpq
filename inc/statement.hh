@@ -653,6 +653,15 @@ private:
 	std::shared_ptr<Expression>			m_expression;
 };
 
+class NullStatement : public Statement {
+public:
+	NullStatement(const cpq::location& loc)
+		: Statement(loc)
+	{}
+
+	virtual void generate(std::vector<std::unique_ptr<instructions::Instruction>>&) const override {}
+};
+
 void finish(std::vector<std::unique_ptr<instructions::Instruction>>& insts);
 
 }

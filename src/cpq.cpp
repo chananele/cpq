@@ -18,5 +18,12 @@ int main(int argc, char *argv[])
 	}
 
 	cpq::driver driver;
-	return driver.parse(argv[1]);
+	int result = driver.parse(argv[1]);
+	
+	if (result && target != "-") {
+		fclose(stdout);
+		remove(target.c_str());
+	}
+	
+	return result;
 }

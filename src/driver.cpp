@@ -25,6 +25,7 @@ int driver::parse(const std::string& path)
 
 void driver::error(const cpq::location& l, const std::string& m)
 {
+	m_error = true;
 	std::cerr << l << ": " << m << std::endl;
 }
 
