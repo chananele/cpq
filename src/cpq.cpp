@@ -6,7 +6,7 @@
 int main(int argc, char *argv[])
 {
 	if (3 != argc) {
-		std::cerr << "Usage: " << argv[0] << " <file> [<out>|-]" << std::endl;
+		std::cerr << "Usage: " << argv[0] << " [<in>|-] [<out>|-]" << std::endl;
 		return 1;
 	}
 	

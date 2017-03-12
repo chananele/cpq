@@ -247,7 +247,6 @@ STATEMENT :
 |	CONTROL_STMT	{ $$ = $1; }
 |	READ_STMT		{ $$ = $1; }
 |	WRITE_STMT		{ $$ = $1; }
-|	error			{ $$ = std::make_shared<NullStatement>(@$); }
 ;
 
 WRITE_STMT :
@@ -274,6 +273,11 @@ ASSIGNMENT_STMT :
 			throw cpq::parser::syntax_error(@$, "assigning to undefined variable: " + $1);
 		} 
 	}
+|	error ";" { 
+		$$ = std::make_shared<NullStatement>(@$);
+		error(@$, "invalid assignment");
+	}
+;
 
 CAST_STMT :
 	"identifier" ":=" "ival" "(" EXPRESSION ")" ";" { 
