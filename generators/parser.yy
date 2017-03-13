@@ -22,7 +22,6 @@
 	#include "statements/Cast.h"
 	#include "statements/For.h"
 	#include "statements/If.h"
-	#include "statements/NullStatement.h"
 	#include "statements/Read.h"
 	#include "statements/Write.h"
 	#include "statements/StatementBlock.h"
@@ -131,10 +130,17 @@
 %type <std::shared_ptr<expressions::Expression>> TERM
 
 %type <std::shared_ptr<statements::Statement>> STATEMENT
+
+%type <std::shared_ptr<statements::Statement>> _ASSIGNMENT_STMT
 %type <std::shared_ptr<statements::Statement>> ASSIGNMENT_STMT
+
 %type <std::shared_ptr<statements::Statement>> BLOCK_STMT
 %type <std::shared_ptr<statements::Statement>> WRITE_STMT
+
+
+%type <std::shared_ptr<statements::Statement>> _READ_STMT
 %type <std::shared_ptr<statements::Statement>> READ_STMT
+
 %type <std::shared_ptr<statements::Statement>> CAST_STMT
 %type <std::shared_ptr<statements::Statement>> CONTROL_STMT
 %type <std::shared_ptr<statements::Statement>> SWITCH_STMT
@@ -195,9 +201,10 @@ DECLARATION :
 	IDENTIFIERS ":" TYPE ";" {
 		for (const std::string& id : *$1) {
 			if (driver.m_variables.find(id) != driver.m_variables.end()) {
-				throw cpq::parser::syntax_error(@$, "variable redefinition: " + id);
+				error(@$, "variable redefinition: " + id);
+			} else {
+				driver.m_variables[id] = std::make_shared<Symbol>($3);
 			}
-			driver.m_variables[id] = std::make_shared<Symbol>($3);
 		}
 	}
 ;
@@ -220,13 +227,14 @@ CONSTS :
 |	CONSTS "const" TYPE "identifier" ":=" NUMBER ";"	{
 		$$ = $1;
 		if (driver.m_variables.find($4) != driver.m_variables.end()) {
-			throw cpq::parser::syntax_error(@$, "variable redefinition: " + $4);
+			error(@$, "variable redefinition: " + $4);
+		} else {
+			auto symbol = std::make_shared<Symbol>($3);
+			driver.m_variables[$4] = symbol;
+			
+			$$->push_back(std::make_unique<Assignment>(@$, symbol, $6));
+			symbol->lock();
 		}
-		auto symbol = std::make_shared<Symbol>($3);
-		driver.m_variables[$4] = symbol;
-		
-		$$->push_back(std::make_unique<Assignment>(@$, symbol, $6));
-		symbol->lock();
 	}
 ;
 
@@ -251,21 +259,27 @@ STATEMENT :
 
 WRITE_STMT :
 	"print" "(" EXPRESSION ")" ";" { $$ = std::make_shared<Write>(@$, $3); }
+|	"print" "(" error	   ")" ";" {}
 ;
 
-READ_STMT :
-	"read" "(" "identifier" ")" ";" {
+_READ_STMT :
+	"identifier" {
 		try
 		{
-			$$ = std::make_shared<Read>(@$, driver.m_variables.at($3));
+			$$ = std::make_shared<Read>(@$, driver.m_variables.at($1));
 		} catch (const std::out_of_range&) {
-			throw cpq::parser::syntax_error(@$, "reading to undefined variable: " + $3);
+			throw cpq::parser::syntax_error(@$, "reading to undefined variable: " + $1);
 		} 
 	}
 ;
 
-ASSIGNMENT_STMT :
-	"identifier" ":=" EXPRESSION ";" { 
+READ_STMT :
+	"read" "(" _READ_STMT ")" ";" { $$ = $3; }
+|	"read" "(" error	  ")" ";" {}
+;
+
+_ASSIGNMENT_STMT :
+	"identifier" ":=" EXPRESSION { 
 		try
 		{
 			$$ = std::make_shared<Assignment>(@$, driver.m_variables.at($1), $3);
@@ -273,11 +287,11 @@ ASSIGNMENT_STMT :
 			throw cpq::parser::syntax_error(@$, "assigning to undefined variable: " + $1);
 		} 
 	}
-|	error ";" { 
-		$$ = std::make_shared<NullStatement>(@$);
-		error(@$, "invalid assignment");
-	}
 ;
+
+ASSIGNMENT_STMT :
+	_ASSIGNMENT_STMT 	";" { $$ = $1; }
+|	error 				";" {}
 
 CAST_STMT :
 	"identifier" ":=" "ival" "(" EXPRESSION ")" ";" { 
@@ -346,6 +360,7 @@ CASES :
 			@5, $5
 		)));
 	}
+|	CASES "case" error "break" ";" {}
 ;
 	  
 STEP :
@@ -373,7 +388,7 @@ STEP :
 			)
 		);
 	} 
-|	error { $$ = std::make_shared<NullStatement>(@$); }
+|	error {}
 ;
 
 BOOLEAN :
